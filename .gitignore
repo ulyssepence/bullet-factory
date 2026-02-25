@@ -1,0 +1,8 @@
+.claude/
+.env
+.playwright-mcp/
+games/
+generated/
+node_modules/
+playwright.config.ts
+test-results/

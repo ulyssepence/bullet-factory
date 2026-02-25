@@ -1,0 +1,32 @@
+{
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "new": "npx tsx scripts/new-game.ts",
+    "dev": "npx tsx scripts/build.ts --watch --serve",
+    "build": "npx tsx scripts/build.ts"
+  },
+  "dependencies": {
+    "@dimforge/rapier3d": "^0.14.0",
+    "@react-three/drei": "^10.0.0",
+    "@react-three/fiber": "^9.0.0",
+    "@react-three/postprocessing": "^3.0.4",
+    "dotenv": "^17.3.1",
+    "openai": "^6.24.0",
+    "postprocessing": "^6.38.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "three": "^0.172.0",
+    "zustand": "^5.0.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/three": "^0.172.0",
+    "esbuild": "^0.25.0",
+    "nodemon": "^3.1.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.7.0"
+  }
+}
