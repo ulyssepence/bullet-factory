@@ -1,5 +1,40 @@
 # Level Generation
 
+## CA-based level generation (DEFAULT — template/src/level/)
+
+Level generation code lives in `template/src/level/` — the single source of truth. Games import it via relative path (e.g. `import * as level from '../../../template/src/level/generate'`). **Do not copy these files into game directories.**
+
+### Modules
+
+| Module | Purpose |
+|--------|---------|
+| `ca.ts` | Cellular automata core: `generateCA`, `generateCAPadded`, `postProcessCA`, `stampMotif`, `assembleArena` (v1). Constants (`FLOOR`, `WALL`, `HAZARD`), types (`ArenaConfig`, `ArenaResult`, `ZoneDef`, `BoundaryDef`), `DEMO_CONFIG` (default 4x4 zone grid), `mulberry32` PRNG. |
+| `corridor.ts` | MST corridor network: `placeZoneLandmarks` (one per chunk), `buildMSTEdges` (Kruskal + extras), `carveCorridors` (A* + noisy circles), `stampVault` (blob vaults with polar noise), `connectOrphanCaves`. |
+| `generate.ts` | Full arena assembly: `assembleArenaV2()` (main entry point — takes `ArenaConfig`, returns `ArenaResult` with grid + zoneMap + stats), `makeDebugArena()` (tiny 12x12 test arena). Re-exports `FLOOR`, `WALL`, `HAZARD`, `DEMO_CONFIG`, `ArenaConfig`, `ArenaResult` from ca.ts. |
+| `marching.ts` | Marching squares contour extraction: `extractContours()`, `smoothContour()`. |
+| `terrain-geo.ts` | Three.js geometry builders: `buildWallGeo()` (contour ribbon walls), `buildFloorGeo()` (vertex-colored ground plane), `buildWallFillGeo()` (per-zone wall cap fill). |
+| `props.ts` | Prop scattering: `scatterProps()` (places props at wall-floor transitions). |
+| `grass.ts` | Vegetation dressing: `build()` (instanced billboard vegetation per zone — grass, wheat, bushes, tendrils, crystals, mushrooms, reeds). Reads grid + zoneMap, derives colors from zone palettes. See `patterns/grass-vegetation.md`. |
+| `index.ts` | Barrel re-export of all modules. |
+
+### Usage
+
+```ts
+import { assembleArenaV2, DEMO_CONFIG } from '../../../template/src/level/generate'
+import type { ArenaConfig } from '../../../template/src/level/ca'
+
+const result = assembleArenaV2({ ...DEMO_CONFIG, seed: 42 })
+// result.grid, result.zoneMap, result.worldSize, result.stats
+```
+
+`DEMO_CONFIG` is a 4x4 zone grid (3 zones, chunkSize=32, seed=42). Games override zones, boundaries, chunkSize, corridors, and seed.
+
+---
+
+## Chunk-based toroidal map (LEGACY — do not use for new games)
+
+> **Use CA-based generation above for all new games.** The chunk-based approach below is retained as reference only. It requires hand-authoring 6-12 chunk templates at design time, which is error-prone and produces less variety than CA.
+
 Chunk-based toroidal map with flow field enemy navigation. The LLM designs chunk templates at game creation time (Phase 1). The runtime assembles them into a fixed repeating grid, activates a ring around the player, and computes flow fields for enemy pathfinding.
 
 ## Overview
@@ -228,6 +263,10 @@ interface ShrineState {
 Shrines are one-use per run. The LLM themes them: a post-apocalyptic game has "Scavenger's Cache" (gamble), "Toxic Pool" (curse), "Emergency Broadcast" (challenge); a fantasy game has "Altar of Fortune", "Demon's Bargain", "Arena Gate".
 
 Shrine placement: 0-1 per chunk, rare. Across the full grid, aim for 3-5 shrines total.
+
+## Organic terrain rendering
+
+The raw collision grid looks tile-y. To make it read as natural terrain, apply transformation layers between grid data and visuals. Full details, terrain archetypes, and tiered approach in `docs/2026-02-26_00-59-53_Organic terrain from grid data in VS-likes.md`. Summary: every game gets ground noise + prop scatter (Tier 1). Natural/mixed archetypes add marching-squares contour walls (Tier 2). Exploration-heavy games replace ASCII templates with CA generation (Tier 3).
 
 ## Rendering (graybox)
 

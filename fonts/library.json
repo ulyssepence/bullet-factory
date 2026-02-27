@@ -1,0 +1,467 @@
+[
+  {
+    "family": "Bungee",
+    "category": "display",
+    "tags": [],
+    "woff2File": "bungee.woff2",
+    "baseSizePx": 13
+  },
+  {
+    "family": "Creepster",
+    "category": "display",
+    "tags": [
+      "zombie",
+      "blood",
+      "horror"
+    ],
+    "woff2File": "creepster.woff2",
+    "baseSizePx": 15
+  },
+  {
+    "family": "Press Start 2P",
+    "category": "display",
+    "tags": [
+      "pixel"
+    ],
+    "woff2File": "press-start-2p.woff2",
+    "baseSizePx": 10
+  },
+  {
+    "family": "Silkscreen",
+    "category": "display",
+    "tags": [
+      "pixel"
+    ],
+    "woff2File": "silkscreen.woff2",
+    "baseSizePx": 14
+  },
+  {
+    "family": "Pixelify Sans",
+    "category": "display",
+    "tags": [
+      "pixel",
+      "fantasy"
+    ],
+    "woff2File": "pixelify-sans.woff2",
+    "baseSizePx": 14
+  },
+  {
+    "family": "Metal Mania",
+    "category": "display",
+    "tags": [
+      "zelda",
+      "sharp",
+      "fantasy"
+    ],
+    "woff2File": "metal-mania.woff2",
+    "baseSizePx": 13
+  },
+  {
+    "family": "Nosifer",
+    "category": "display",
+    "tags": [
+      "blood",
+      "horror"
+    ],
+    "woff2File": "nosifer.woff2",
+    "baseSizePx": 11
+  },
+  {
+    "family": "Eater",
+    "category": "display",
+    "tags": [
+      "halloween",
+      "web",
+      "bramble",
+      "sharp"
+    ],
+    "woff2File": "eater.woff2",
+    "baseSizePx": 12
+  },
+  {
+    "family": "Rubik Glitch",
+    "category": "display",
+    "tags": [
+      "psychedelic",
+      "blurry",
+      "fade"
+    ],
+    "woff2File": "rubik-glitch.woff2",
+    "baseSizePx": 13
+  },
+  {
+    "family": "Rubik Wet Paint",
+    "category": "display",
+    "tags": [
+      "horror",
+      "blood"
+    ],
+    "woff2File": "rubik-wet-paint.woff2",
+    "baseSizePx": 11
+  },
+  {
+    "family": "Rubik Maze",
+    "category": "display",
+    "tags": [
+      "egyptian pyramid",
+      "qr code",
+      "circuit",
+      "electronic"
+    ],
+    "woff2File": "rubik-maze.woff2",
+    "baseSizePx": 13
+  },
+  {
+    "family": "Rubik Vinyl",
+    "category": "display",
+    "tags": [
+      "outline",
+      "graffiti"
+    ],
+    "woff2File": "rubik-vinyl.woff2",
+    "baseSizePx": 11
+  },
+  {
+    "family": "Rubik Moonrocks",
+    "category": "display",
+    "tags": [
+      "holes"
+    ],
+    "woff2File": "rubik-moonrocks.woff2",
+    "baseSizePx": 13
+  },
+  {
+    "family": "Rubik Puddles",
+    "category": "display",
+    "tags": [
+      "bubble fluffy"
+    ],
+    "woff2File": "rubik-puddles.woff2",
+    "baseSizePx": 10
+  },
+  {
+    "family": "Rubik Microbe",
+    "category": "display",
+    "tags": [
+      "skin",
+      "cellular",
+      "patches"
+    ],
+    "woff2File": "rubik-microbe.woff2",
+    "baseSizePx": 13
+  },
+  {
+    "family": "Freckle Face",
+    "category": "display",
+    "tags": [
+      "wonky",
+      "weird",
+      "playful"
+    ],
+    "woff2File": "freckle-face.woff2",
+    "baseSizePx": 12
+  },
+  {
+    "family": "Henny Penny",
+    "category": "display",
+    "tags": [
+      "halloween",
+      "stylish"
+    ],
+    "woff2File": "henny-penny.woff2",
+    "baseSizePx": 8
+  },
+  {
+    "family": "Butcherman",
+    "category": "display",
+    "tags": [
+      "tombstone",
+      "horror"
+    ],
+    "woff2File": "butcherman.woff2",
+    "baseSizePx": 12
+  },
+  {
+    "family": "Ewert",
+    "category": "display",
+    "tags": [
+      "western",
+      "old"
+    ],
+    "woff2File": "ewert.woff2",
+    "baseSizePx": 15
+  },
+  {
+    "family": "Plaster",
+    "category": "display",
+    "tags": [
+      "stylish",
+      "modern",
+      "title"
+    ],
+    "woff2File": "plaster.woff2",
+    "baseSizePx": 13
+  },
+  {
+    "family": "Shojumaru",
+    "category": "display",
+    "tags": [
+      "japanese sword",
+      "sharp"
+    ],
+    "woff2File": "shojumaru.woff2",
+    "baseSizePx": 14
+  },
+  {
+    "family": "Emblema One",
+    "category": "display",
+    "tags": [
+      "graffiti"
+    ],
+    "woff2File": "emblema-one.woff2",
+    "baseSizePx": 13
+  },
+  {
+    "family": "Flavors",
+    "category": "display",
+    "tags": [
+      "stylish",
+      "hairy"
+    ],
+    "woff2File": "flavors.woff2",
+    "baseSizePx": 11
+  },
+  {
+    "family": "Rammetto One",
+    "category": "display",
+    "tags": [
+      "thick",
+      "grounded"
+    ],
+    "woff2File": "rammetto-one.woff2",
+    "baseSizePx": 12
+  },
+  {
+    "family": "Sancreek",
+    "category": "display",
+    "tags": [
+      "western",
+      "stylish"
+    ],
+    "woff2File": "sancreek.woff2",
+    "baseSizePx": 11
+  },
+  {
+    "family": "Uncial Antiqua",
+    "category": "display",
+    "tags": [
+      "zelda",
+      "fantasy",
+      "old"
+    ],
+    "woff2File": "uncial-antiqua.woff2",
+    "baseSizePx": 10
+  },
+  {
+    "family": "Jolly Lodger",
+    "category": "display",
+    "tags": [
+      "tall",
+      "stylish"
+    ],
+    "woff2File": "jolly-lodger.woff2",
+    "baseSizePx": 13
+  },
+  {
+    "family": "Kablammo",
+    "category": "display",
+    "tags": [
+      "tribal",
+      "playful"
+    ],
+    "woff2File": "kablammo.woff2",
+    "baseSizePx": 14
+  },
+  {
+    "family": "Limelight",
+    "category": "display",
+    "tags": [
+      "film",
+      "thick"
+    ],
+    "woff2File": "limelight.woff2",
+    "baseSizePx": 14
+  },
+  {
+    "family": "Londrina Outline",
+    "category": "display",
+    "tags": [
+      "outline"
+    ],
+    "woff2File": "londrina-outline.woff2",
+    "baseSizePx": 12
+  },
+  {
+    "family": "Londrina Solid",
+    "category": "display",
+    "tags": [
+      "conventional",
+      "thick"
+    ],
+    "woff2File": "londrina-solid.woff2",
+    "baseSizePx": 13
+  },
+  {
+    "family": "Mystery Quest",
+    "category": "display",
+    "tags": [
+      "stylish",
+      "whacky",
+      "curly"
+    ],
+    "woff2File": "mystery-quest.woff2",
+    "baseSizePx": 10
+  },
+  {
+    "family": "New Rocker",
+    "category": "display",
+    "tags": [
+      "fantasy",
+      "sharp",
+      "zelda"
+    ],
+    "woff2File": "new-rocker.woff2",
+    "baseSizePx": 11
+  },
+  {
+    "family": "Reggae One",
+    "category": "display",
+    "tags": [
+      "japanese sword",
+      "stylish"
+    ],
+    "woff2File": "reggae-one.woff2",
+    "baseSizePx": 12
+  },
+  {
+    "family": "Rubik Iso",
+    "category": "display",
+    "tags": [
+      "arcade"
+    ],
+    "woff2File": "rubik-iso.woff2",
+    "baseSizePx": 12
+  },
+  {
+    "family": "Rubik Marker Hatch",
+    "category": "display",
+    "tags": [
+      "faded",
+      "blurry",
+      "soft"
+    ],
+    "woff2File": "rubik-marker-hatch.woff2",
+    "baseSizePx": 13
+  },
+  {
+    "family": "Rubik Spray Paint",
+    "category": "display",
+    "tags": [
+      "painted",
+      "graffiti",
+      "thick"
+    ],
+    "woff2File": "rubik-spray-paint.woff2",
+    "baseSizePx": 12
+  },
+  {
+    "family": "Anton",
+    "category": "display",
+    "tags": [
+      "tall"
+    ],
+    "woff2File": "anton.woff2",
+    "baseSizePx": 12
+  },
+  {
+    "family": "Caesar Dressing",
+    "category": "display",
+    "tags": [
+      "sharp",
+      "tribal"
+    ],
+    "woff2File": "caesar-dressing.woff2",
+    "baseSizePx": 15
+  },
+  {
+    "family": "Chela One",
+    "category": "display",
+    "tags": [
+      "japanese",
+      "soft"
+    ],
+    "woff2File": "chela-one.woff2",
+    "baseSizePx": 14
+  },
+  {
+    "family": "Cinzel Decorative",
+    "category": "display",
+    "tags": [
+      "zelda",
+      "fantasy"
+    ],
+    "woff2File": "cinzel-decorative.woff2",
+    "baseSizePx": 12
+  },
+  {
+    "family": "Coiny",
+    "category": "display",
+    "tags": [
+      "round",
+      "playful"
+    ],
+    "woff2File": "coiny.woff2",
+    "baseSizePx": 13
+  },
+  {
+    "family": "Codystar",
+    "category": "display",
+    "tags": [
+      "film",
+      "dotted"
+    ],
+    "woff2File": "codystar.woff2",
+    "baseSizePx": 15
+  },
+  {
+    "family": "Fascinate",
+    "category": "display",
+    "tags": [
+      "film",
+      "stylish"
+    ],
+    "woff2File": "fascinate.woff2",
+    "baseSizePx": 12
+  },
+  {
+    "family": "Kumar One Outline",
+    "category": "display",
+    "tags": [
+      "stylish",
+      "blurry"
+    ],
+    "woff2File": "kumar-one-outline.woff2",
+    "baseSizePx": 10
+  },
+  {
+    "family": "Modak",
+    "category": "display",
+    "tags": [
+      "round",
+      "thick",
+      "title"
+    ],
+    "woff2File": "modak.woff2",
+    "baseSizePx": 13
+  }
+]

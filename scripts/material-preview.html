@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><style>
+  html, body { margin: 0; padding: 0; overflow: hidden; background: #f0f0f0; }
+  canvas { display: block; }
+  #scatter-container { padding: 16px; font-family: monospace; font-size: 13px; }
+  #scatter-container canvas { border: 1px solid #ccc; background: #fff; }
+  #stats { margin-top: 12px; white-space: pre; line-height: 1.6; }
+  #context-bar {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 10;
+    background: rgba(0,0,0,0.75); color: #fff; font: 11px/1.4 monospace;
+    padding: 4px 8px; display: flex; align-items: center; gap: 10px;
+  }
+  #context-bar .swatch {
+    display: inline-block; width: 14px; height: 14px; border: 1px solid #fff; border-radius: 2px;
+  }
+  #context-bar .label { opacity: 0.7; font-size: 9px; }
+</style></head>
+<body>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.172.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three'
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
+
+const params = new URLSearchParams(location.search)
+const modelUrl = params.get('model')
+const zonesParam = params.get('zones')
+const angle = parseFloat(params.get('angle') || '0')
+const elevation = parseFloat(params.get('elevation') || '20')
+const size = parseInt(params.get('size') || '512')
+const mode = params.get('mode') || '3d'
+const scatterX = params.get('scatterX') || 'absX'
+const scatterY = params.get('scatterY') || 'height'
+const meshName = params.get('meshName') || ''
+const meshRole = params.get('meshRole') || ''
+let paletteData = {}
+try { paletteData = JSON.parse(decodeURIComponent(params.get('palette') || '{}')) } catch {}
+
+if (Object.keys(paletteData).length || meshName) {
+  const bar = document.createElement('div')
+  bar.id = 'context-bar'
+  if (meshName) {
+    const nameEl = document.createElement('span')
+    nameEl.textContent = meshName + (meshRole ? ' — ' + meshRole : '')
+    bar.appendChild(nameEl)
+  }
+  for (const [role, hex] of Object.entries(paletteData)) {
+    const wrap = document.createElement('span')
+    const swatch = document.createElement('span')
+    swatch.className = 'swatch'
+    swatch.style.background = hex
+    swatch.title = role + ' ' + hex
+    const label = document.createElement('span')
+    label.className = 'label'
+    label.textContent = role
+    wrap.appendChild(swatch)
+    wrap.appendChild(document.createTextNode(' '))
+    wrap.appendChild(label)
+    bar.appendChild(wrap)
+  }
+  document.body.appendChild(bar)
+}
+
+if (!modelUrl) {
+  document.body.textContent = 'Error: ?model= parameter required'
+  document.body.setAttribute('data-ready', 'error')
+  throw new Error('No model URL')
+}
+
+let zoneConfig = null
+if (zonesParam) {
+  try {
+    zoneConfig = JSON.parse(decodeURIComponent(zonesParam))
+  } catch {
+    const resp = await fetch(zonesParam)
+    zoneConfig = await resp.json()
+  }
+}
+
+function classifyVertex(zones, h, r, absX, absZ, slope, normalY) {
+  for (let i = 0; i < zones.length; i++) {
+    const z = zones[i]
+    let match = true
+    if (z.height && (h < z.height[0] || h > z.height[1])) match = false
+    if (z.radial && (r < z.radial[0] || r > z.radial[1])) match = false
+    if (z.absX && (absX < z.absX[0] || absX > z.absX[1])) match = false
+    if (z.absZ && (absZ < z.absZ[0] || absZ > z.absZ[1])) match = false
+    if (z.slope && (slope < z.slope[0] || slope > z.slope[1])) match = false
+    if (z.normalY && (normalY < z.normalY[0] || normalY > z.normalY[1])) match = false
+    if (match) return i
+  }
+  return -1
+}
+
+function hexToVec3(hex) {
+  const r = parseInt(hex.slice(1, 3), 16) / 255
+  const g = parseInt(hex.slice(3, 5), 16) / 255
+  const b = parseInt(hex.slice(5, 7), 16) / 255
+  return `${r.toFixed(4)}, ${g.toFixed(4)}, ${b.toFixed(4)}`
+}
+
+function getAxisValue(name, v) {
+  if (name === 'height') return v.h
+  if (name === 'absX') return v.absX
+  if (name === 'absZ') return v.absZ
+  if (name === 'radial') return v.r
+  if (name === 'slope') return v.slope
+  return v.h
+}
+
+function computeIslands(geometry) {
+  const pos = geometry.getAttribute('position')
+  const count = pos.count
+  const parent = new Int32Array(count)
+  const rank = new Int32Array(count)
+  for (let i = 0; i < count; i++) parent[i] = i
+
+  function find(x) {
+    while (parent[x] !== x) { parent[x] = parent[parent[x]]; x = parent[x] }
+    return x
+  }
+  function union(a, b) {
+    a = find(a); b = find(b)
+    if (a === b) return
+    if (rank[a] < rank[b]) parent[a] = b
+    else if (rank[a] > rank[b]) parent[b] = a
+    else { parent[b] = a; rank[a]++ }
+  }
+
+  const index = geometry.index
+  if (index) {
+    const arr = index.array
+    for (let i = 0; i < arr.length; i += 3) {
+      union(arr[i], arr[i + 1])
+      union(arr[i + 1], arr[i + 2])
+    }
+  } else {
+    for (let i = 0; i < count; i += 3) {
+      union(i, i + 1)
+      union(i + 1, i + 2)
+    }
+  }
+
+  const groups = new Map()
+  for (let i = 0; i < count; i++) {
+    const root = find(i)
+    if (!groups.has(root)) groups.set(root, [])
+    groups.get(root).push(i)
+  }
+
+  const islands = []
+  for (const [, verts] of groups) {
+    const centroid = new THREE.Vector3()
+    for (const vi of verts) {
+      centroid.x += pos.getX(vi)
+      centroid.y += pos.getY(vi)
+      centroid.z += pos.getZ(vi)
+    }
+    centroid.divideScalar(verts.length)
+    islands.push({ vertexIndices: verts, centroid })
+  }
+  return islands
+}
+
+const loader = new GLTFLoader()
+
+if (mode === 'scatter') {
+  renderScatter()
+} else {
+  render3D()
+}
+
+function render3D() {
+  const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true })
+  renderer.setSize(size, size)
+  renderer.setClearColor(0xf0f0f0)
+  document.body.appendChild(renderer.domElement)
+
+  const scene = new THREE.Scene()
+  scene.add(new THREE.AmbientLight(0xffffff, 0.6))
+  const dirLight = new THREE.DirectionalLight(0xffffff, 0.8)
+  dirLight.position.set(0.3, 1, 0.5)
+  scene.add(dirLight)
+  const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.01, 100)
+
+  loader.load(modelUrl, (gltf) => {
+    const model = gltf.scene
+    scene.add(model)
+
+    // Compute bbox from raw geometry positions (not skinned transforms)
+    // so it matches what ShaderMaterial without skinning will render
+    const box = new THREE.Box3()
+    model.traverse((child) => {
+      if (!child.isMesh) return
+      const pos = child.geometry.getAttribute('position')
+      if (!pos) return
+      for (let i = 0; i < pos.count; i++) {
+        box.expandByPoint(new THREE.Vector3(pos.getX(i), pos.getY(i), pos.getZ(i)))
+      }
+    })
+    if (box.isEmpty()) box.setFromObject(model)
+
+    const center = box.getCenter(new THREE.Vector3())
+    const bsize = box.getSize(new THREE.Vector3())
+    const maxDim = Math.max(bsize.x, bsize.y, bsize.z)
+
+    const pad = 1.15
+    const half = maxDim * pad / 2
+    camera.left = -half
+    camera.right = half
+    camera.top = half
+    camera.bottom = -half
+    camera.near = 0.01
+    camera.far = maxDim * 10
+    camera.updateProjectionMatrix()
+
+    const dist = maxDim * 3
+    const aRad = angle * Math.PI / 180
+    const eRad = elevation * Math.PI / 180
+    camera.position.set(
+      center.x + Math.sin(aRad) * Math.cos(eRad) * dist,
+      center.y + Math.sin(eRad) * dist,
+      center.z + Math.cos(aRad) * Math.cos(eRad) * dist
+    )
+    camera.lookAt(center)
+
+    if (zoneConfig) {
+      applyZoneMaterial(model, zoneConfig, box)
+    }
+
+    renderer.render(scene, camera)
+    document.body.setAttribute('data-ready', 'true')
+  }, undefined, (err) => {
+    document.body.textContent = 'Error loading model: ' + err.message
+    document.body.setAttribute('data-ready', 'error')
+  })
+}
+
+function renderScatter() {
+  if (!zoneConfig) {
+    document.body.textContent = 'Error: scatter mode requires ?zones= parameter'
+    document.body.setAttribute('data-ready', 'error')
+    return
+  }
+
+  const container = document.createElement('div')
+  container.id = 'scatter-container'
+  document.body.appendChild(container)
+
+  loader.load(modelUrl, (gltf) => {
+    const model = gltf.scene
+    const box = new THREE.Box3().setFromObject(model)
+    const minY = box.min.y
+    const rangeY = (box.max.y - box.min.y) || 1.0
+    const maxRadial = Math.max(
+      Math.abs(box.min.x), Math.abs(box.max.x),
+      Math.abs(box.min.z), Math.abs(box.max.z),
+      0.001
+    )
+    const maxAbsX = Math.max(Math.abs(box.min.x), Math.abs(box.max.x), 0.001)
+    const maxAbsZ = Math.max(Math.abs(box.min.z), Math.abs(box.max.z), 0.001)
+
+    const vertices = []
+    model.traverse((child) => {
+      if (!child.isMesh) return
+      const pos = child.geometry.getAttribute('position')
+      if (!pos) return
+      for (let i = 0; i < pos.count; i++) {
+        const x = pos.getX(i)
+        const y = pos.getY(i)
+        const z = pos.getZ(i)
+        vertices.push({
+          h: Math.max(0, Math.min(1, (y - minY) / rangeY)),
+          r: Math.sqrt(x * x + z * z) / maxRadial,
+          absX: Math.abs(x) / maxAbsX,
+          absZ: Math.abs(z) / maxAbsZ,
+          slope: 0,
+          normalY: 0,
+        })
+      }
+    })
+
+    const allIslands = []
+    let totalIslands = 0
+    model.traverse((child) => {
+      if (!child.isMesh) return
+      const islands = computeIslands(child.geometry)
+      totalIslands += islands.length
+      for (const island of islands) {
+        const c = island.centroid
+        allIslands.push({
+          h: Math.max(0, Math.min(1, (c.y - minY) / rangeY)),
+          r: Math.sqrt(c.x * c.x + c.z * c.z) / maxRadial,
+          absX: Math.abs(c.x) / maxAbsX,
+          absZ: Math.abs(c.z) / maxAbsZ,
+          slope: 0,
+          normalY: 0,
+          vertCount: island.vertexIndices.length,
+        })
+      }
+    })
+
+    const maxVerts = 10000
+    let sampled = vertices
+    if (vertices.length > maxVerts) {
+      const step = vertices.length / maxVerts
+      sampled = []
+      for (let i = 0; i < maxVerts; i++) {
+        sampled.push(vertices[Math.floor(i * step)])
+      }
+    }
+
+    const zones = zoneConfig.zones || []
+    const fallbackColor = zoneConfig.fallback?.debugColor || '#888888'
+    const classified = sampled.map(v => ({
+      ...v,
+      zone: classifyVertex(zones, v.h, v.r, v.absX, v.absZ, v.slope, v.normalY),
+    }))
+
+    const cw = size
+    const ch = size
+    const margin = { top: 30, right: 30, bottom: 50, left: 60 }
+    const plotW = cw - margin.left - margin.right
+    const plotH = ch - margin.top - margin.bottom
+
+    const canvas = document.createElement('canvas')
+    canvas.width = cw
+    canvas.height = ch
+    container.appendChild(canvas)
+    const ctx = canvas.getContext('2d')
+
+    ctx.fillStyle = '#fff'
+    ctx.fillRect(0, 0, cw, ch)
+
+    ctx.strokeStyle = '#ccc'
+    ctx.lineWidth = 1
+    for (let i = 0; i <= 10; i++) {
+      const x = margin.left + (i / 10) * plotW
+      const y = margin.top + (i / 10) * plotH
+      ctx.beginPath(); ctx.moveTo(x, margin.top); ctx.lineTo(x, margin.top + plotH); ctx.stroke()
+      ctx.beginPath(); ctx.moveTo(margin.left, y); ctx.lineTo(margin.left + plotW, y); ctx.stroke()
+    }
+
+    ctx.setLineDash([6, 4])
+    ctx.lineWidth = 2
+    for (const z of zones) {
+      const hRange = z.height || [0, 1]
+      const xRange = z[scatterX] || [0, 1]
+
+      const x0 = margin.left + xRange[0] * plotW
+      const x1 = margin.left + xRange[1] * plotW
+      const y0 = margin.top + (1 - hRange[1]) * plotH
+      const y1 = margin.top + (1 - hRange[0]) * plotH
+
+      ctx.strokeStyle = z.debugColor
+      ctx.beginPath()
+      ctx.rect(x0, y0, x1 - x0, y1 - y0)
+      ctx.stroke()
+    }
+    ctx.setLineDash([])
+
+    for (const v of classified) {
+      const color = v.zone >= 0 ? zones[v.zone].debugColor : fallbackColor
+      const px = margin.left + getAxisValue(scatterX, v) * plotW
+      const py = margin.top + (1 - getAxisValue(scatterY, v)) * plotH
+      ctx.fillStyle = color
+      ctx.globalAlpha = 0.5
+      ctx.beginPath()
+      ctx.arc(px, py, 2.5, 0, Math.PI * 2)
+      ctx.fill()
+    }
+    ctx.globalAlpha = 1.0
+
+    const classifiedIslands = allIslands.map(v => ({
+      ...v,
+      zone: classifyVertex(zones, v.h, v.r, v.absX, v.absZ, v.slope, v.normalY),
+    }))
+    for (const v of classifiedIslands) {
+      const color = v.zone >= 0 ? zones[v.zone].debugColor : fallbackColor
+      const px = margin.left + getAxisValue(scatterX, v) * plotW
+      const py = margin.top + (1 - getAxisValue(scatterY, v)) * plotH
+      ctx.fillStyle = color
+      ctx.globalAlpha = 0.9
+      ctx.strokeStyle = '#000'
+      ctx.lineWidth = 1.5
+      ctx.beginPath()
+      ctx.arc(px, py, 6, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.stroke()
+    }
+    ctx.globalAlpha = 1.0
+
+    ctx.strokeStyle = '#333'
+    ctx.lineWidth = 1.5
+    ctx.beginPath()
+    ctx.moveTo(margin.left, margin.top)
+    ctx.lineTo(margin.left, margin.top + plotH)
+    ctx.lineTo(margin.left + plotW, margin.top + plotH)
+    ctx.stroke()
+
+    ctx.fillStyle = '#333'
+    ctx.font = '12px monospace'
+    ctx.textAlign = 'center'
+    for (let i = 0; i <= 10; i += 2) {
+      const val = (i / 10).toFixed(1)
+      ctx.fillText(val, margin.left + (i / 10) * plotW, margin.top + plotH + 18)
+    }
+    ctx.fillText(scatterX, margin.left + plotW / 2, margin.top + plotH + 40)
+
+    ctx.save()
+    ctx.translate(15, margin.top + plotH / 2)
+    ctx.rotate(-Math.PI / 2)
+    ctx.textAlign = 'center'
+    ctx.fillText(scatterY, 0, 0)
+    ctx.restore()
+
+    ctx.textAlign = 'right'
+    for (let i = 0; i <= 10; i += 2) {
+      const val = (i / 10).toFixed(1)
+      ctx.fillText(val, margin.left - 8, margin.top + plotH - (i / 10) * plotH + 4)
+    }
+
+    const legendX = margin.left + plotW - 120
+    let legendY = margin.top + 12
+    ctx.font = '11px monospace'
+    ctx.textAlign = 'left'
+    for (const z of zones) {
+      ctx.fillStyle = z.debugColor
+      ctx.fillRect(legendX, legendY - 8, 10, 10)
+      ctx.fillStyle = '#333'
+      ctx.fillText(z.name, legendX + 14, legendY)
+      legendY += 16
+    }
+    ctx.fillStyle = fallbackColor
+    ctx.fillRect(legendX, legendY - 8, 10, 10)
+    ctx.fillStyle = '#333'
+    ctx.fillText('fallback', legendX + 14, legendY)
+
+    const counts = new Map()
+    for (let i = 0; i < zones.length; i++) counts.set(i, { count: 0 })
+    counts.set(-1, { count: 0 })
+    for (const v of classified) {
+      counts.get(v.zone).count++
+    }
+
+    const totalVerts = vertices.length
+    const totalSampled = sampled.length
+    let statsText = `Total: ${totalVerts} vertices, ${totalIslands} islands`
+    if (totalVerts > maxVerts) statsText += ` (sampled ${totalSampled})`
+    statsText += '\n'
+
+    for (let i = 0; i < zones.length; i++) {
+      const z = zones[i]
+      const c = counts.get(i).count
+      const pct = ((c / totalSampled) * 100).toFixed(1)
+      const name = z.name.padEnd(8)
+      let rangeStr = ''
+      if (z.height) rangeStr += ` h=[${z.height[0].toFixed(2)},${z.height[1].toFixed(2)}]`
+      if (z.absX) rangeStr += ` absX=[${z.absX[0].toFixed(2)},${z.absX[1].toFixed(2)}]`
+      if (z.absZ) rangeStr += ` absZ=[${z.absZ[0].toFixed(2)},${z.absZ[1].toFixed(2)}]`
+      if (z.radial) rangeStr += ` r=[${z.radial[0].toFixed(2)},${z.radial[1].toFixed(2)}]`
+      if (z.slope) rangeStr += ` slope=[${z.slope[0].toFixed(2)},${z.slope[1].toFixed(2)}]`
+      statsText += `${name} ${String(c).padStart(5)} verts (${pct.padStart(5)}%)${rangeStr}\n`
+    }
+    const fc = counts.get(-1).count
+    const fpct = ((fc / totalSampled) * 100).toFixed(1)
+    statsText += `${'fallback'.padEnd(8)} ${String(fc).padStart(5)} verts (${fpct.padStart(5)}%)`
+
+    const statsDiv = document.createElement('div')
+    statsDiv.id = 'stats'
+    statsDiv.textContent = statsText
+    container.appendChild(statsDiv)
+
+    document.body.setAttribute('data-ready', 'true')
+  }, undefined, (err) => {
+    document.body.textContent = 'Error loading model: ' + err.message
+    document.body.setAttribute('data-ready', 'error')
+  })
+}
+
+function hexToRGB(hex) {
+  return [
+    parseInt(hex.slice(1, 3), 16) / 255,
+    parseInt(hex.slice(3, 5), 16) / 255,
+    parseInt(hex.slice(5, 7), 16) / 255,
+  ]
+}
+
+function applyZoneMaterial(model, config, bbox) {
+  const minY = bbox.min.y
+  const rangeY = (bbox.max.y - bbox.min.y) || 1.0
+  const maxRadial = Math.max(
+    Math.abs(bbox.min.x), Math.abs(bbox.max.x),
+    Math.abs(bbox.min.z), Math.abs(bbox.max.z),
+    0.001
+  )
+  const maxAbsX = Math.max(Math.abs(bbox.min.x), Math.abs(bbox.max.x), 0.001)
+  const maxAbsZ = Math.max(Math.abs(bbox.min.z), Math.abs(bbox.max.z), 0.001)
+
+  const zones = config.zones || []
+  const fallback = config.fallback?.debugColor || '#888888'
+  const fallbackRGB = hexToRGB(fallback)
+  const zoneRGBs = zones.map(z => hexToRGB(z.debugColor))
+
+  // Build bone→zone map from config zones that have `bones` arrays
+  const boneZoneMap = new Map()
+  for (let i = 0; i < zones.length; i++) {
+    if (zones[i].bones) {
+      for (const boneName of zones[i].bones) boneZoneMap.set(boneName, i)
+    }
+  }
+
+  // ShaderMaterial for unrigged meshes (position-based classification in fragment shader)
+  let shaderMat = null
+  function getShaderMaterial() {
+    if (shaderMat) return shaderMat
+
+    let zoneColorLookup = ''
+    for (let i = 0; i < zones.length; i++) {
+      zoneColorLookup += `        ${i > 0 ? 'else ' : ''}if (zi == ${i}) color = vec3(${hexToVec3(zones[i].debugColor)});\n`
+    }
+    let classify = '        bool matched = false;\n'
+    const heightBoundaries = new Set()
+    for (const z of zones) {
+      const conds = []
+      if (z.height) {
+        conds.push(`h >= ${z.height[0].toFixed(4)} && h <= ${z.height[1].toFixed(4)}`)
+        heightBoundaries.add(z.height[0])
+        heightBoundaries.add(z.height[1])
+      }
+      if (z.radial) conds.push(`r >= ${z.radial[0].toFixed(4)} && r <= ${z.radial[1].toFixed(4)}`)
+      if (z.absX) conds.push(`absX >= ${z.absX[0].toFixed(4)} && absX <= ${z.absX[1].toFixed(4)}`)
+      if (z.absZ) conds.push(`absZ >= ${z.absZ[0].toFixed(4)} && absZ <= ${z.absZ[1].toFixed(4)}`)
+      if (z.slope) conds.push(`slope >= ${z.slope[0].toFixed(4)} && slope <= ${z.slope[1].toFixed(4)}`)
+      if (z.normalY) conds.push(`faceNormal.y >= ${z.normalY[0].toFixed(4)} && faceNormal.y <= ${z.normalY[1].toFixed(4)}`)
+      const cond = conds.length > 0 ? conds.join(' && ') : 'true'
+      classify += `        if (!matched && (${cond})) { color = vec3(${hexToVec3(z.debugColor)}); matched = true; }\n`
+    }
+    let boundaryLines = ''
+    for (const b of heightBoundaries) {
+      if (b > 0.001 && b < 0.999) {
+        boundaryLines += `      if (abs(h - ${b.toFixed(4)}) < 0.005) lineDarken = 0.4;\n`
+      }
+    }
+
+    shaderMat = new THREE.ShaderMaterial({
+      vertexShader: `
+        attribute float zoneIndex;
+        varying vec3 vObjPos;
+        varying float vZoneIndex;
+        void main() {
+          vObjPos = position;
+          vZoneIndex = zoneIndex;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        varying vec3 vObjPos;
+        varying float vZoneIndex;
+        void main() {
+          vec3 faceNormal = normalize(cross(dFdx(vObjPos), dFdy(vObjPos)));
+          vec3 color = vec3(${hexToVec3(fallback)});
+          float h = clamp((vObjPos.y - (${minY.toFixed(4)})) / (${rangeY.toFixed(4)}), 0.0, 1.0);
+          int zi = int(floor(vZoneIndex + 0.5));
+          if (zi >= 0) {
+  ${zoneColorLookup}
+          } else {
+            float r = length(vObjPos.xz) / ${maxRadial.toFixed(4)};
+            float absX = abs(vObjPos.x) / ${maxAbsX.toFixed(4)};
+            float absZ = abs(vObjPos.z) / ${maxAbsZ.toFixed(4)};
+            float slope = 1.0 - abs(faceNormal.y);
+  ${classify}
+          }
+          vec3 lightDir = normalize(vec3(0.3, 1.0, 0.5));
+          float lit = abs(dot(faceNormal, lightDir)) * 0.35 + 0.65;
+          float lineDarken = 0.0;
+          if (zi < 0) {
+  ${boundaryLines}
+          }
+          gl_FragColor = vec4(color * lit * (1.0 - lineDarken), 1.0);
+        }
+      `,
+      side: THREE.DoubleSide,
+    })
+    return shaderMat
+  }
+
+  model.traverse((child) => {
+    if (!child.isMesh) return
+    const pos = child.geometry.getAttribute('position')
+    const skinIdx = child.geometry.getAttribute('skinIndex')
+    const skinWt = child.geometry.getAttribute('skinWeight')
+    const hasSkinning = skinIdx && skinWt && child.skeleton && boneZoneMap.size > 0
+
+    if (hasSkinning) {
+      // Hybrid: island detection + bone-weight classification
+      // Small islands → centroid classification (catches hat, shoulder pads, etc.)
+      // Largest island → bone weights (body)
+      const colors = new Float32Array(pos.count * 3)
+      const boneCounts = new Map()
+      const islands = computeIslands(child.geometry)
+      let largestIdx = 0
+      for (let i = 1; i < islands.length; i++) {
+        if (islands[i].vertexIndices.length > islands[largestIdx].vertexIndices.length)
+          largestIdx = i
+      }
+      const largestSet = new Set(islands[largestIdx].vertexIndices)
+
+      // Classify small islands by centroid
+      if (islands.length > 1) {
+        console.log(`[bone-zones] ${islands.length} islands found in skinned mesh`)
+        for (let i = 0; i < islands.length; i++) {
+          if (i === largestIdx) continue
+          const c = islands[i].centroid
+          const nh = Math.max(0, Math.min(1, (c.y - minY) / rangeY))
+          const nr = Math.sqrt(c.x * c.x + c.z * c.z) / maxRadial
+          const nAbsX = Math.abs(c.x) / maxAbsX
+          const nAbsZ = Math.abs(c.z) / maxAbsZ
+          const zi = classifyVertex(zones, nh, nr, nAbsX, nAbsZ, 0, 0)
+          const rgb = zi >= 0 ? zoneRGBs[zi] : fallbackRGB
+          for (const vi of islands[i].vertexIndices) {
+            colors[vi * 3] = rgb[0]
+            colors[vi * 3 + 1] = rgb[1]
+            colors[vi * 3 + 2] = rgb[2]
+          }
+          console.log(`[bone-zones]   island ${i}: ${islands[i].vertexIndices.length} verts, centroid h=${nh.toFixed(2)} -> ${zi >= 0 ? zones[zi].name : 'fallback'}`)
+        }
+      }
+
+      // Zones without bones use position override on body island (e.g. hat)
+      const positionZones = zones
+        .map((z, i) => ({ idx: i, zone: z }))
+        .filter(({ zone }) => !zone.bones && zone.height)
+
+      // Classify largest island by bone weights, with position overrides
+      for (const vi of islands[largestIdx].vertexIndices) {
+        let maxW = 0, maxBoneIdx = 0
+        for (let j = 0; j < 4; j++) {
+          const w = skinWt.getComponent(vi, j)
+          if (w > maxW) { maxW = w; maxBoneIdx = skinIdx.getComponent(vi, j) }
+        }
+        const bone = child.skeleton.bones[maxBoneIdx]
+        const name = bone ? bone.name : `unknown_${maxBoneIdx}`
+        boneCounts.set(name, (boneCounts.get(name) || 0) + 1)
+        let zi = boneZoneMap.get(name)
+
+        // Position override for boneless zones (hat has no dedicated bone)
+        if (positionZones.length > 0) {
+          const y = pos.getY(vi)
+          const h = Math.max(0, Math.min(1, (y - minY) / rangeY))
+          const x = pos.getX(vi), zz = pos.getZ(vi)
+          const r = Math.sqrt(x * x + zz * zz) / maxRadial
+          const absX = Math.abs(x) / maxAbsX
+          const absZ = Math.abs(zz) / maxAbsZ
+          for (const { idx, zone } of positionZones) {
+            if (zone.height && (h < zone.height[0] || h > zone.height[1])) continue
+            if (zone.radial && (r < zone.radial[0] || r > zone.radial[1])) continue
+            if (zone.absX && (absX < zone.absX[0] || absX > zone.absX[1])) continue
+            if (zone.absZ && (absZ < zone.absZ[0] || absZ > zone.absZ[1])) continue
+            zi = idx
+            break
+          }
+        }
+
+        const rgb = zi !== undefined ? zoneRGBs[zi] : fallbackRGB
+        colors[vi * 3] = rgb[0]
+        colors[vi * 3 + 1] = rgb[1]
+        colors[vi * 3 + 2] = rgb[2]
+      }
+      child.geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+      child.material = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide })
+
+      const boneNames = child.skeleton.bones.map(b => b.name)
+      console.log(`[bone-zones] Mesh: ${child.name}, ${pos.count} verts, ${boneNames.length} bones: ${boneNames.join(', ')}`)
+      const sorted = [...boneCounts.entries()].sort((a, b) => b[1] - a[1])
+      for (const [name, count] of sorted) {
+        const zone = boneZoneMap.has(name) ? zones[boneZoneMap.get(name)].name : 'UNMAPPED'
+        console.log(`[bone-zones]   ${name}: ${count} verts -> ${zone}`)
+      }
+    } else {
+      // Unrigged: island-centroid + position-fallback via ShaderMaterial
+      const zoneIndexArr = new Float32Array(pos.count)
+      const islands = computeIslands(child.geometry)
+      if (islands.length > 1) {
+        let largestIdx = 0
+        for (let i = 1; i < islands.length; i++) {
+          if (islands[i].vertexIndices.length > islands[largestIdx].vertexIndices.length)
+            largestIdx = i
+        }
+        for (let i = 0; i < islands.length; i++) {
+          if (i === largestIdx) {
+            for (const vi of islands[i].vertexIndices) zoneIndexArr[vi] = -1.0
+            continue
+          }
+          const c = islands[i].centroid
+          const nh = Math.max(0, Math.min(1, (c.y - minY) / rangeY))
+          const nr = Math.sqrt(c.x * c.x + c.z * c.z) / maxRadial
+          const nAbsX = Math.abs(c.x) / maxAbsX
+          const nAbsZ = Math.abs(c.z) / maxAbsZ
+          const zi = classifyVertex(zones, nh, nr, nAbsX, nAbsZ, 0, 0)
+          for (const vi of islands[i].vertexIndices) zoneIndexArr[vi] = zi
+        }
+      } else {
+        zoneIndexArr.fill(-1.0)
+      }
+      child.geometry.setAttribute('zoneIndex', new THREE.BufferAttribute(zoneIndexArr, 1))
+      child.material = getShaderMaterial()
+    }
+  })
+}
+</script>
+</body>
+</html>

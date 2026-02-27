@@ -184,6 +184,27 @@ One pool per entity type (enemies, projectiles, XP gems, floating numbers). On "
 
 For the Three.js side: pair each pool entry with an `InstancedMesh` index. On release, move the instance's matrix off-screen (or set scale to 0). On acquire, set its matrix to the spawn position. This avoids creating/destroying Three.js objects entirely.
 
+## Shared systems (`template/src/systems/`)
+
+Reusable runtime gameplay systems live in `template/src/systems/`. Games import them directly (not copied). Each system is logic-only — no Three.js, no audio. Games wire side effects via callback parameters.
+
+| System | Import | Key exports |
+|--------|--------|-------------|
+| `systems/types` | `import * as st from '../../../template/src/systems/types'` | `EntityId`, `EnemyState`, `WeaponState`, `ProjectileState`, `PickupState`, `PlayerChange`, `WeaponDef`, `UpgradeSequence` |
+| `systems/grid` | `import * as grid from '../../../template/src/systems/grid'` | `wrapCoord`, `gridIdx`, `shortestWrapped`, `isFloor` |
+| `systems/spatial` | `import * as spatial from '../../../template/src/systems/spatial'` | `createSpatialHash` — factory, no module-level state |
+| `systems/collision` | `import * as collision from '../../../template/src/systems/collision'` | `resolvePlayerCollision`, `wrapPosition` |
+| `systems/navigation` | `import * as navigation from '../../../template/src/systems/navigation'` | `createNavigationState`, `recomputeFlow`, `getFlowDir`, `hasLOS` |
+| `systems/enemies` | `import * as enemies from '../../../template/src/systems/enemies'` | `initWaveState`, `tickWaves`, `tickEnemies`, `tickSeparation`, `tickContactDamage` |
+| `systems/combat` | `import * as combat from '../../../template/src/systems/combat'` | `tickWeapons`, `tickProjectiles`, `tickPickups`, `spawnPickup`, `findNearestEnemy` |
+| `systems/progression` | `import * as progression from '../../../template/src/systems/progression'` | `xpToNext`, `selectChoices`, `applyChange`, `weaponFromDef` |
+
+**Design rules:**
+- Systems declare their own state interfaces (e.g. `EnemyTickState`). Games satisfy them structurally — no monolithic `GameState` import.
+- No module-level mutable state. Factory functions (`createNavigationState`, `createSpatialHash`) return state objects.
+- All constants parameterized via config objects. No hardcoded magic numbers.
+- Entity ID generation via `genId: () => string` parameter — games provide from their seeded PRNG.
+
 ## Why not ECS?
 
 Miniplex and bitECS are available (see R3F research doc), but for a generated game the mutable-state-with-systems pattern is simpler to produce correctly. An LLM generating code against a typed `GameState` interface has a clear contract. ECS requires understanding archetypes, queries, and system ordering — more surface area for generation errors. If performance becomes an issue (thousands of entities), the state shape is already data-oriented enough to migrate the hot paths to bitECS without rewriting the game logic.

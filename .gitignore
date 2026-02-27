@@ -1,8 +1,10 @@
 .claude/
 .env
 .playwright-mcp/
+fonts/*.woff2
 games/
 generated/
 node_modules/
 playwright.config.ts
+smoke-screenshots/
 test-results/

@@ -1,5 +1,11 @@
-// Headless bot runner for balance tuning (SOP 2.8)
-// Usage: npx tsx scripts/bot-runner.ts
+// Headless bot runner for balance tuning
+// Usage: npx tsx scripts/bot-runner.ts <slug>
+
+const slug = process.argv[2]
+if (!slug) {
+  console.error('Usage: npx tsx scripts/bot-runner.ts <slug>')
+  process.exit(1)
+}
 
 // Mock browser globals before any game imports
 globalThis.window = { addEventListener: () => {}, removeEventListener: () => {} } as any
@@ -12,11 +18,10 @@ globalThis.AudioContext = class {
   decodeAudioData() { return Promise.resolve({}) }
 } as any
 
-// Dynamic imports so mocks are in place before module-scope side effects
-const { gameStore, restart, tick } = await import('../games/crazy-west/src/store')
-const input = await import('../games/crazy-west/src/input')
-const progression = await import('../games/crazy-west/src/progression')
-const objects = await import('../games/crazy-west/src/objects')
+const { gameStore, restart, tick } = await import(`../games/${slug}/src/store`)
+const input = await import(`../games/${slug}/src/input`)
+const progression = await import(`../games/${slug}/src/progression`)
+const objects = await import(`../games/${slug}/src/objects`)
 
 const DT = 1 / 60
 const MAX_TICKS = 36_000 // 600s
@@ -41,20 +46,17 @@ function runBot(): RunStats {
   let peakEnemyCount = 0
   let peakTickMs = 0
 
-  // Random walk: pick direction, hold for 1-3s
   let moveDirX = 0, moveDirZ = 0
   let moveTimer = 0
 
   for (let i = 0; i < MAX_TICKS; i++) {
     const state = gameStore.getState()
 
-    // Handle level-up (game is paused)
     if (state.progression.pendingChoices) {
       progression.applyChoice(state, 0, gameStore)
       continue
     }
 
-    // Handle shrine (game is paused)
     if (state.shrineActive) {
       const lastIdx = state.shrineActive.choices.length - 1
       objects.applyShrineChoice(state, lastIdx, gameStore)
@@ -72,7 +74,6 @@ function runBot(): RunStats {
       }
     }
 
-    // Random walk
     moveTimer -= DT
     if (moveTimer <= 0) {
       const angle = Math.random() * Math.PI * 2

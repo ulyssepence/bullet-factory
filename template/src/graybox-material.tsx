@@ -1,13 +1,21 @@
 import React, { useMemo } from 'react'
 import * as THREE from 'three'
 
-export type SurfaceStyle = 'rough' | 'smooth' | 'organic' | 'crystalline' | 'metallic' | 'worn'
+export type SurfaceStyle =
+  | 'rough' | 'smooth' | 'organic' | 'crystalline' | 'metallic' | 'worn'
+  | 'wood' | 'brick' | 'tile' | 'sand' | 'dirt' | 'grass' | 'marble'
+  | 'cobblestone' | 'bark' | 'gravel' | 'carpet' | 'slate' | 'ice' | 'obsidian'
+  | 'plank' | 'moss'
 
 interface Props {
   color: string
   style: SurfaceStyle
   scale?: number
   bumpStrength?: number
+  side?: THREE.Side
+  polygonOffset?: boolean
+  polygonOffsetFactor?: number
+  polygonOffsetUnits?: number
 }
 
 const NOISE_GLSL = /* glsl */ `
@@ -231,13 +239,285 @@ const styleConfigs: Record<SurfaceStyle, {
     fragmentCode: /* glsl */ `
       vec4 ng = fbm_grad(triUV * noiseScale, 2);
       float n = ng.w;
-      // Layer: scratches at higher frequency
       float scratches = snoise(triUV * noiseScale * 4.0) * 0.5;
       float wear = clamp(n + scratches * 0.3, -1.0, 1.0);
       surfaceColor = baseColor * (0.88 + 0.12 * wear);
       bumpGrad = ng.xyz;
       roughnessMod = 0.1 * wear;
       metalnessMod = -0.1 * (1.0 - smoothstep(-0.2, 0.2, wear));
+    `,
+  },
+  wood: {
+    roughness: 0.65,
+    metalness: 0.0,
+    octaves: 1,
+    noiseScale: 2.0,
+    bumpScale: 0.08,
+    fragmentCode: /* glsl */ `
+      // Wood grain: sin along one axis warped by noise
+      float grain = sin(triUV.x * noiseScale * 10.0 + snoise(triUV * noiseScale) * 2.0);
+      grain = grain * 0.5 + 0.5; // remap to 0-1
+      surfaceColor = baseColor * (0.88 + 0.12 * grain);
+      bumpGrad = vec3(cos(triUV.x * noiseScale * 10.0) * noiseScale * 10.0, 0.0, 0.0);
+      roughnessMod = 0.04 * (1.0 - grain);
+    `,
+  },
+  plank: {
+    roughness: 0.7,
+    metalness: 0.0,
+    octaves: 1,
+    noiseScale: 1.0,
+    bumpScale: 0.1,
+    fragmentCode: /* glsl */ `
+      // Planks: wood grain + board divisions
+      float boardX = fract(triUV.x * noiseScale * 2.0);
+      float boardZ = fract(triUV.z * noiseScale * 0.5);
+      float gap = 1.0 - smoothstep(0.0, 0.03, boardX) * smoothstep(0.0, 0.03, 1.0 - boardX);
+      float grain = sin(triUV.x * noiseScale * 20.0 + snoise(triUV * noiseScale * 2.0) * 1.5);
+      grain = grain * 0.5 + 0.5;
+      surfaceColor = baseColor * (0.85 + 0.12 * grain) * (0.7 + 0.3 * gap);
+      bumpGrad = vec3(0.0, 0.0, (1.0 - gap) * 2.0);
+      roughnessMod = 0.05 * (1.0 - grain);
+    `,
+  },
+  brick: {
+    roughness: 0.85,
+    metalness: 0.0,
+    octaves: 1,
+    noiseScale: 2.0,
+    bumpScale: 0.12,
+    fragmentCode: /* glsl */ `
+      // Brick pattern: offset rows
+      vec2 brickUV = triUV.xz * noiseScale * 2.0;
+      float row = floor(brickUV.y);
+      brickUV.x += mod(row, 2.0) * 0.5; // offset every other row
+      vec2 brick = fract(brickUV);
+      float mortarX = 1.0 - smoothstep(0.0, 0.05, brick.x) * smoothstep(0.0, 0.05, 1.0 - brick.x);
+      float mortarY = 1.0 - smoothstep(0.0, 0.08, brick.y) * smoothstep(0.0, 0.08, 1.0 - brick.y);
+      float mortar = max(mortarX, mortarY);
+      float n = snoise(triUV * noiseScale * 4.0) * 0.06;
+      surfaceColor = baseColor * (0.85 + 0.12 * (1.0 - mortar) + n);
+      bumpGrad = vec3(mortar * 2.0, 0.0, mortar * 2.0);
+      roughnessMod = 0.05 * mortar;
+    `,
+  },
+  tile: {
+    roughness: 0.15,
+    metalness: 0.0,
+    octaves: 1,
+    noiseScale: 3.0,
+    bumpScale: 0.1,
+    fragmentCode: /* glsl */ `
+      // Square tile grid with grout
+      vec2 tileUV = fract(triUV.xz * noiseScale * 2.0);
+      float groutX = 1.0 - smoothstep(0.0, 0.04, tileUV.x) * smoothstep(0.0, 0.04, 1.0 - tileUV.x);
+      float groutY = 1.0 - smoothstep(0.0, 0.04, tileUV.y) * smoothstep(0.0, 0.04, 1.0 - tileUV.y);
+      float grout = max(groutX, groutY);
+      surfaceColor = baseColor * (0.92 + 0.06 * (1.0 - grout));
+      bumpGrad = vec3(grout, 0.0, grout);
+      roughnessMod = 0.3 * grout; // grout is rough, tile is smooth
+    `,
+  },
+  sand: {
+    roughness: 0.9,
+    metalness: 0.0,
+    octaves: 2,
+    noiseScale: 12.0,
+    bumpScale: 0.04,
+    fragmentCode: /* glsl */ `
+      // Fine-grain high-frequency noise
+      vec4 ng = fbm_grad(triUV * noiseScale, 2);
+      float n = ng.w;
+      surfaceColor = baseColor * (0.95 + 0.05 * n);
+      bumpGrad = ng.xyz;
+      roughnessMod = 0.02 * n;
+    `,
+  },
+  dirt: {
+    roughness: 0.9,
+    metalness: 0.0,
+    octaves: 2,
+    noiseScale: 3.0,
+    bumpScale: 0.1,
+    fragmentCode: /* glsl */ `
+      vec4 ng = fbm_grad(triUV * noiseScale, 2);
+      float n = ng.w;
+      // Clumpy: sharpen the noise
+      float clump = smoothstep(-0.2, 0.3, n);
+      surfaceColor = baseColor * (0.85 + 0.15 * clump);
+      bumpGrad = ng.xyz;
+      roughnessMod = 0.05 * clump;
+    `,
+  },
+  grass: {
+    roughness: 0.8,
+    metalness: 0.0,
+    octaves: 2,
+    noiseScale: 2.0,
+    bumpScale: 0.06,
+    fragmentCode: /* glsl */ `
+      // Gentle low-frequency variation
+      vec4 ng = fbm_grad(triUV * noiseScale, 2);
+      float n = ng.w;
+      surfaceColor = baseColor * (0.92 + 0.08 * n);
+      bumpGrad = ng.xyz;
+      roughnessMod = 0.03 * n;
+    `,
+  },
+  marble: {
+    roughness: 0.1,
+    metalness: 0.0,
+    octaves: 2,
+    noiseScale: 2.0,
+    bumpScale: 0.03,
+    fragmentCode: /* glsl */ `
+      // Marble veins: sin warped by turbulence
+      float turb = fbm(triUV * noiseScale, 2);
+      float vein = sin(triUV.x * noiseScale * 6.0 + turb * 4.0);
+      vein = vein * 0.5 + 0.5;
+      vein = smoothstep(0.3, 0.7, vein);
+      surfaceColor = baseColor * (0.88 + 0.12 * vein);
+      vec4 ng = fbm_grad(triUV * noiseScale, 2);
+      bumpGrad = ng.xyz * vein;
+      roughnessMod = 0.03 * (1.0 - vein);
+    `,
+  },
+  cobblestone: {
+    roughness: 0.85,
+    metalness: 0.0,
+    octaves: 1,
+    noiseScale: 3.0,
+    bumpScale: 0.12,
+    fragmentCode: /* glsl */ `
+      // Voronoi cells = individual stones
+      vec2 v = voronoi(triUV * noiseScale);
+      float cell = v.x; // distance to nearest cell center
+      float edge = smoothstep(0.0, 0.15, v.y - v.x); // mortar at edges
+      surfaceColor = baseColor * (0.82 + 0.15 * edge + 0.03 * snoise(triUV * noiseScale * 5.0));
+      float eps = 0.05;
+      float nx = voronoi(triUV * noiseScale + vec3(eps,0,0)).x - voronoi(triUV * noiseScale - vec3(eps,0,0)).x;
+      float nz = voronoi(triUV * noiseScale + vec3(0,0,eps)).x - voronoi(triUV * noiseScale - vec3(0,0,eps)).x;
+      bumpGrad = vec3(nx, 0.0, nz) / (2.0 * eps);
+      roughnessMod = 0.05 * (1.0 - edge);
+    `,
+  },
+  bark: {
+    roughness: 0.9,
+    metalness: 0.0,
+    octaves: 2,
+    noiseScale: 3.0,
+    bumpScale: 0.12,
+    fragmentCode: /* glsl */ `
+      // Vertically stretched ridges
+      vec3 stretched = triUV * noiseScale * vec3(1.0, 0.3, 1.0);
+      vec4 ng = fbm_grad(stretched, 2);
+      float n = ng.w;
+      // Ridge pattern from abs
+      float ridge = abs(n);
+      surfaceColor = baseColor * (0.85 + 0.15 * ridge);
+      bumpGrad = ng.xyz * vec3(1.0, 0.3, 1.0);
+      roughnessMod = 0.05 * ridge;
+    `,
+  },
+  gravel: {
+    roughness: 0.95,
+    metalness: 0.0,
+    octaves: 2,
+    noiseScale: 6.0,
+    bumpScale: 0.12,
+    fragmentCode: /* glsl */ `
+      // Coarse, chunky noise
+      vec4 ng = fbm_grad(triUV * noiseScale, 2);
+      float n = ng.w;
+      // Quantize slightly for chunky feel
+      float chunky = floor(n * 4.0 + 0.5) / 4.0;
+      surfaceColor = baseColor * (0.85 + 0.15 * chunky);
+      bumpGrad = ng.xyz;
+      roughnessMod = 0.05 * abs(chunky);
+    `,
+  },
+  carpet: {
+    roughness: 0.95,
+    metalness: 0.0,
+    octaves: 2,
+    noiseScale: 16.0,
+    bumpScale: 0.03,
+    fragmentCode: /* glsl */ `
+      // Cross-hatch weave pattern
+      float warpN = snoise(triUV * noiseScale * 0.1) * 0.3;
+      float threadX = sin(triUV.x * noiseScale * 8.0 + warpN) * 0.5 + 0.5;
+      float threadZ = sin(triUV.z * noiseScale * 8.0 + warpN) * 0.5 + 0.5;
+      float weave = threadX * 0.5 + threadZ * 0.5;
+      surfaceColor = baseColor * (0.93 + 0.07 * weave);
+      bumpGrad = vec3(cos(triUV.x * noiseScale * 8.0) * 0.5, 0.0, cos(triUV.z * noiseScale * 8.0) * 0.5);
+      roughnessMod = 0.02 * weave;
+    `,
+  },
+  slate: {
+    roughness: 0.6,
+    metalness: 0.0,
+    octaves: 2,
+    noiseScale: 4.0,
+    bumpScale: 0.08,
+    fragmentCode: /* glsl */ `
+      // Layered flat planes with edge flaking
+      float layers = triUV.y * noiseScale * 3.0;
+      float layerEdge = fract(layers);
+      float flake = smoothstep(0.0, 0.1, layerEdge) * smoothstep(0.0, 0.1, 1.0 - layerEdge);
+      float n = snoise(triUV * noiseScale * 3.0) * 0.08;
+      surfaceColor = baseColor * (0.9 + 0.08 * flake + n);
+      bumpGrad = vec3(0.0, (1.0 - flake) * 3.0, 0.0);
+      roughnessMod = 0.1 * (1.0 - flake);
+    `,
+  },
+  ice: {
+    roughness: 0.05,
+    metalness: 0.0,
+    octaves: 1,
+    noiseScale: 2.0,
+    bumpScale: 0.04,
+    fragmentCode: /* glsl */ `
+      // Smooth with internal cracks (voronoi edges)
+      vec2 v = voronoi(triUV * noiseScale * 2.0);
+      float crack = 1.0 - smoothstep(0.0, 0.08, v.y - v.x);
+      float n = snoise(triUV * noiseScale) * 0.03;
+      surfaceColor = baseColor * (0.95 + 0.05 * (1.0 - crack) + n);
+      float eps = 0.05;
+      float nx = voronoi(triUV * noiseScale * 2.0 + vec3(eps,0,0)).x - voronoi(triUV * noiseScale * 2.0 - vec3(eps,0,0)).x;
+      float nz = voronoi(triUV * noiseScale * 2.0 + vec3(0,0,eps)).x - voronoi(triUV * noiseScale * 2.0 - vec3(0,0,eps)).x;
+      bumpGrad = vec3(nx, 0.0, nz) / (2.0 * eps) * crack;
+      roughnessMod = 0.15 * crack;
+    `,
+  },
+  obsidian: {
+    roughness: 0.05,
+    metalness: 0.1,
+    octaves: 1,
+    noiseScale: 3.0,
+    bumpScale: 0.02,
+    fragmentCode: /* glsl */ `
+      // Very smooth, glassy, with subtle swirls
+      float n = snoise(triUV * noiseScale);
+      surfaceColor = baseColor * (0.96 + 0.04 * n);
+      vec4 ng = snoise_grad(triUV * noiseScale);
+      bumpGrad = ng.xyz;
+      roughnessMod = 0.02 * abs(n);
+    `,
+  },
+  moss: {
+    roughness: 0.85,
+    metalness: 0.0,
+    octaves: 2,
+    noiseScale: 2.5,
+    bumpScale: 0.08,
+    fragmentCode: /* glsl */ `
+      // Patchy coverage over rough base
+      vec4 ng = fbm_grad(triUV * noiseScale, 2);
+      float n = ng.w;
+      float patches = smoothstep(-0.1, 0.2, n); // sharp threshold
+      surfaceColor = baseColor * (0.85 + 0.15 * patches);
+      bumpGrad = ng.xyz;
+      roughnessMod = 0.08 * patches;
     `,
   },
 }
@@ -272,7 +552,7 @@ function makeShader(style: SurfaceStyle) {
   }
 }
 
-export function GrayboxMaterial({ color, style, scale = 1.0, bumpStrength }: Props) {
+export function GrayboxMaterial({ color, style, scale = 1.0, bumpStrength, side, polygonOffset, polygonOffsetFactor, polygonOffsetUnits }: Props) {
   const mat = useMemo(() => {
     const shader = makeShader(style)
     const baseColor = new THREE.Color(color)
@@ -282,6 +562,10 @@ export function GrayboxMaterial({ color, style, scale = 1.0, bumpStrength }: Pro
       color: baseColor,
       roughness: shader.roughness,
       metalness: shader.metalness,
+      ...(side != null && { side }),
+      ...(polygonOffset != null && { polygonOffset }),
+      ...(polygonOffsetFactor != null && { polygonOffsetFactor }),
+      ...(polygonOffsetUnits != null && { polygonOffsetUnits }),
     })
 
     material.onBeforeCompile = (s) => {
@@ -313,6 +597,10 @@ export function GrayboxMaterial({ color, style, scale = 1.0, bumpStrength }: Pro
         '#include <normal_fragment_maps>',
         `#include <normal_fragment_maps>
         {
+          // Override normal from vWorldNormal so it's winding-independent
+          // (fixes brightness mismatch between front/back-facing triangles with DoubleSide)
+          normal = normalize((viewMatrix * vec4(vWorldNormal, 0.0)).xyz);
+
           // Triplanar blending weights
           vec3 blend = abs(vWorldNormal);
           blend = pow(blend, vec3(4.0));

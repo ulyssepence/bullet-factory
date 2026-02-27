@@ -52,7 +52,7 @@ function FollowCamera() {
 
 function App() {
   React.useEffect(() => {
-    audio.preload(audio.defaultManifest)
+    audio.player.preload(audio.defaultManifest)
   }, [])
 
   return (

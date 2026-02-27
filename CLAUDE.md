@@ -4,48 +4,30 @@ LLM-agent-driven game generation: give it a prompt, get a playable 3D game (Vamp
 
 ## Stack
 
-For context, see `docs/2026-02-23_14-07-55_Game-engine-decision Three.js Capacitor.md`. Three.js + React Three Fiber + Rapier (physics) + Zustand (state) + esbuild. Capacitor for iOS/Android. All TypeScript, no binary scene formats, no editor dependency.
+Three.js + React Three Fiber + Rapier (physics) + Zustand (state) + esbuild. Capacitor for iOS/Android (`build:ios`, `build:android`). All TypeScript.
 
 ## Project Structure
 
 ```
-package.json          — shared deps for all games (R3F, Three.js, etc.)
-scripts/
-  new-game.ts         — scaffold + launch Claude session
-  build.ts            — esbuild + static asset copy
-  generate-sounds.ts  — produce placeholder .wav files
-  preview-palettes.ts — show 8 high-contrast palettes for selection
+scripts/              — scaffold, build, asset generation, preview/debug tools
 template/
-  SOP.md              — the SOP worksheet (copied per game by `npm run new`)
-  src/                — starter code (main, store, types, input, audio, palette, postfx)
+  SOP.md              — the SOP worksheet (copied per game)
+  src/                — game engine skeleton: main, store, systems/, level/, particles, popups, audio, input, palette, postfx
   static/audio/       — placeholder graybox sounds
-patterns/
-  game-architecture.md — how to structure game code
-  post-processing.md  — full-screen shader pass pipeline
-  ...                  — other implementation patterns
-games/
-  <slug>/
-    SOP.md            — this game's filled-in SOP (working document)
-    docs/             — timestamped log of what was done (latest = current phase)
-    src/              — game source code
-    static/audio/     — sound files (copied from template, customizable)
-docs/                 — project-wide research and decisions
+patterns/             — 20+ implementation patterns (read before implementing a feature)
+games/<slug>/         — each game: SOP.md (working doc), docs/ (history), src/, static/
+fonts/                — curated font library (library.json + .woff2 files)
+docs/                 — project-wide research, brainstorms, decisions
 ```
 
-Each game lives in `games/<slug>/`. All games share the root `node_modules`. A game's `SOP.md` is the working document — checkboxes are gates, blanks are deliverables. Its `docs/` directory is history — timestamped markdown files with prose rationale.
+All games share root `node_modules`. All scripts run from **project root**, not from inside a game dir.
 
 ## Creating a New Game
 
-`npm run new <slug> [prompt...]` scaffolds from `template/` and launches a Claude Code session that works through the SOP autonomously. The agent completes each phase (pre-production, graybox) without stopping, pausing only at "User review" gates. All scripts (palette preview, build, etc.) must be run from the **project root**, not from inside `games/<slug>/`.
+`npm run new <slug> [prompt...]` — scaffolds from `template/`, launches Claude session that works through SOP autonomously. Pauses only at "User review" gates.
 
-1. **Pre-production** — agent drafts all sections autonomously, presents complete package for single user review.
-2. **Graybox** — agent builds all steps in order, presents playable game for user review.
-3. **Asset generation** — tuning, optional asset swap, post-processing.
+## Key References
 
-## Technical Conventions
-
-See `docs/2026-02-23-game-framework-conventions-brainstorm.md`
-
-## Patterns
-
-Implementation patterns live in `patterns/`. Agents should read relevant patterns before implementing a feature. See `patterns/game-architecture.md` for the core game structure.
+- `patterns/game-architecture.md` — core game structure
+- `docs/2026-02-23-game-framework-conventions-brainstorm.md` — technical conventions
+- `docs/2026-02-23_14-07-55_Game-engine-decision Three.js Capacitor.md` — stack rationale

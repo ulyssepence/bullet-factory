@@ -51,11 +51,11 @@ export const PRESETS: Record<string, PresetParams> = {
     opacity: 0.9, loop: true, spread: [0.6, 0.4, 0.6],
   },
   rain: {
-    count: 200, poolSize: 2,
-    velocity: [0, -8, 0], velocitySpread: [0.5, 1, 0.5],
-    gravity: 0, lifetimeMin: 0.8, lifetimeMax: 1.5,
-    sizeMin: 0.03, sizeMax: 0.07, sizeScale: 1,
-    opacity: 0.6, loop: true, spread: [15, 10, 15],
+    count: 300, poolSize: 2,
+    velocity: [0, -6, 0], velocitySpread: [0.3, 0.5, 0.3],
+    gravity: 0, lifetimeMin: 1.0, lifetimeMax: 2.0,
+    sizeMin: 0.1, sizeMax: 0.2, sizeScale: 1,
+    opacity: 0.8, loop: true, spread: [12, 8, 12],
     followCamera: true,
   },
 }

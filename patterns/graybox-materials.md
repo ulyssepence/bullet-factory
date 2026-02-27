@@ -24,14 +24,47 @@ import { GrayboxMaterial } from './graybox-material'
 
 ## Styles
 
+### Core
+
 | Style | Use for | Character |
 |-------|---------|-----------|
-| `rough` | Ground, walls, stone | High-freq noise bump, matte (roughness 0.85) |
+| `rough` | Concrete, stone, walls | High-freq fBm bump, matte (roughness 0.85) |
 | `smooth` | Player, pickups, UI elements | Minimal noise, reflective (roughness 0.2) |
-| `organic` | Terrain, flesh, bark | Domain-warped fBm, medium roughness |
-| `crystalline` | Crystals, ice, gems, XP | Voronoi cell edges, slight metalness |
-| `metallic` | Weapons, armor, machines | Brushed anisotropic noise, metalness 0.4 (safe without env map) |
-| `worn` | Aged surfaces, crates, ruins | Layered noise + scratches, mixed roughness |
+| `organic` | Terrain, flesh, living things | Domain-warped fBm, medium roughness |
+| `crystalline` | Crystals, gems, XP | Voronoi cell edges, slight metalness |
+| `metallic` | Weapons, armor, machines | Brushed anisotropic noise, metalness 0.4 |
+| `worn` | Aged surfaces, ruins | Layered noise + scratches, mixed roughness |
+
+### Natural
+
+| Style | Use for | Character |
+|-------|---------|-----------|
+| `wood` | Furniture, structures | sin(x + noise) grain lines |
+| `plank` | Floors, crates, docks | Wood grain + board gap divisions |
+| `bark` | Trees, logs | Vertically stretched ridges |
+| `grass` | Lawns, fields, meadows | Gentle low-frequency variation |
+| `dirt` | Paths, farmland | Clumpy medium noise, high roughness |
+| `sand` | Desert, beach, dunes | Fine high-freq grain, very matte |
+| `moss` | Overgrown surfaces | Patchy threshold noise, organic feel |
+
+### Stone & mineral
+
+| Style | Use for | Character |
+|-------|---------|-----------|
+| `marble` | Pillars, floors, altars | sin veins warped by turbulence, glossy |
+| `cobblestone` | Paths, roads, old floors | Voronoi cells = individual stones |
+| `slate` | Roofs, layered rock | Horizontal layers with edge flaking |
+| `gravel` | Loose ground, rubble | Coarse quantized noise chunks |
+| `ice` | Frozen surfaces, glaciers | Smooth with internal voronoi cracks |
+| `obsidian` | Dark glossy stone, portals | Very smooth, glassy, subtle swirls |
+
+### Built
+
+| Style | Use for | Character |
+|-------|---------|-----------|
+| `brick` | Walls, chimneys, buildings | Offset rectangular grid + mortar |
+| `tile` | Bathrooms, kitchens, temples | Square grid + grout, glossy surface |
+| `carpet` | Interiors, soft floors | Cross-hatch weave pattern, very matte |
 
 ## Palette integration
 
@@ -62,5 +95,6 @@ Triplanar mapping projects noise in world space along all three axes, blended by
 - Simplex noise with analytical gradients (no finite differences except `crystalline`)
 - fBm capped at 2 octaves
 - Noise computed per-fragment; on mobile, ~1-2ms overhead for full-screen coverage
-- `crystalline` is the most expensive style (voronoi = 27-cell neighbor search + finite-difference gradient)
+- `crystalline`, `cobblestone`, `ice` are the most expensive (voronoi = 27-cell neighbor search + finite-difference gradient)
 - If perf is tight, use `smooth` (single noise eval) or drop `bumpStrength` to 0
+- Pattern-based styles (`brick`, `tile`, `plank`) are cheap — just step/fract math
