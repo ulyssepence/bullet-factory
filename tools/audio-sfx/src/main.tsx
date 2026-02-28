@@ -7,6 +7,12 @@ interface SoundEntry {
   path: string
 }
 
+interface EventConfig {
+  name: string
+  current?: string
+  hint?: string
+}
+
 const SOUNDS: SoundEntry[] = [
   { category: 'generated', filename: 'ambient.wav', path: 'audio/ambient.wav' },
   { category: 'generated', filename: 'death.wav', path: 'audio/death.wav' },
@@ -67,11 +73,10 @@ const SOUNDS: SoundEntry[] = [
 
 const CATEGORIES = [...new Set(SOUNDS.map(s => s.category))].sort()
 
-const GAME_EVENTS = [
+const DEFAULT_EVENTS: EventConfig[] = [
   'hit', 'death', 'hurt', 'pickup', 'levelup', 'shoot',
   'dash', 'block', 'coin', 'menuClick', 'menuHover',
-] as const
-type GameEvent = typeof GAME_EVENTS[number]
+].map(name => ({ name }))
 
 let audioCtx: AudioContext | null = null
 function getCtx() {
@@ -122,9 +127,29 @@ function App() {
   const [search, setSearch] = useState('')
   const [expanded, setExpanded] = useState<Set<string>>(new Set(CATEGORIES))
   const [playing, setPlaying] = useState<string | null>(null)
+  const [events, setEvents] = useState<EventConfig[]>(DEFAULT_EVENTS)
   const [mapping, setMapping] = useState<Record<string, string>>({})
-  const [assigningEvent, setAssigningEvent] = useState<GameEvent | null>(null)
+  const [assigningEvent, setAssigningEvent] = useState<string | null>(null)
+  const [integrated, setIntegrated] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<string | null>(null)
+  const [newEventName, setNewEventName] = useState('')
   const sourceRef = useRef<AudioBufferSourceNode | null>(null)
+
+  useEffect(() => {
+    fetch('/audio-config.json')
+      .then(r => { if (!r.ok) throw new Error(); return r.json() })
+      .then((config: { events: Record<string, { current?: string; hint?: string }> }) => {
+        const loaded = Object.entries(config.events).map(([name, v]) => ({
+          name, current: v.current, hint: v.hint,
+        }))
+        setEvents(loaded)
+        const initial: Record<string, string> = {}
+        for (const e of loaded) if (e.current) initial[e.name] = e.current
+        setMapping(initial)
+        setIntegrated(true)
+      })
+      .catch(() => {})
+  }, [])
 
   const handlePlay = useCallback(async (path: string) => {
     if (sourceRef.current) { try { sourceRef.current.stop() } catch {} }
@@ -148,12 +173,36 @@ function App() {
     })
   }
 
-  const exportMapping = () => {
+  const downloadMapping = () => {
     const blob = new Blob([JSON.stringify(mapping, null, 2)], { type: 'application/json' })
     const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
     a.download = 'sound-mapping.json'
     a.click()
+  }
+
+  const saveToGame = async () => {
+    setSaveStatus('Saving...')
+    try {
+      const res = await fetch('/api/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(mapping),
+      })
+      if (!res.ok) throw new Error()
+      const result = await res.json()
+      setSaveStatus(`Saved to ${result.outputDir}`)
+    } catch {
+      setSaveStatus('Save failed — downloading JSON instead')
+      downloadMapping()
+    }
+  }
+
+  const addEvent = () => {
+    const name = newEventName.trim()
+    if (!name || events.some(e => e.name === name)) return
+    setEvents(prev => [...prev, { name }])
+    setNewEventName('')
   }
 
   useEffect(() => {
@@ -208,25 +257,55 @@ function App() {
               <button onClick={() => setAssigningEvent(null)}>cancel</button>
             </div>
           )}
+          {saveStatus && (
+            <div className="save-status">
+              {saveStatus}
+              <button onClick={() => setSaveStatus(null)}>{'\u2715'}</button>
+            </div>
+          )}
           <div className="events">
-            {GAME_EVENTS.map(evt => {
-              const assigned = mapping[evt]
+            {events.map(evt => {
+              const assigned = mapping[evt.name]
               return (
-                <div key={evt} className={`event-row ${assigningEvent === evt ? 'active' : ''}`}>
-                  <span className="event-name">{evt}</span>
+                <div key={evt.name} className={`event-row ${assigningEvent === evt.name ? 'active' : ''}`}>
+                  <div className="event-info">
+                    <span className="event-name">{evt.name}</span>
+                    {evt.hint && <span className="event-hint">{evt.hint}</span>}
+                  </div>
                   <span className="event-sound" title={assigned || 'unassigned'}>{assigned ? assigned.split('/').pop() : '\u2014'}</span>
                   <button className="play-btn" disabled={!assigned} onClick={() => assigned && handlePlay(assigned)}>{'\u25B6'}</button>
-                  <button className="assign-btn" onClick={() => setAssigningEvent(assigningEvent === evt ? null : evt)}>
-                    {assigningEvent === evt ? '\u2715' : '\u2397'}
+                  <button className="assign-btn" onClick={() => setAssigningEvent(assigningEvent === evt.name ? null : evt.name)}>
+                    {assigningEvent === evt.name ? '\u2715' : '\u2397'}
                   </button>
-                  {assigned && <button className="clear-btn" onClick={() => setMapping(m => { const n = { ...m }; delete n[evt]; return n })}>{'\u2715'}</button>}
+                  {assigned && <button className="clear-btn" onClick={() => setMapping(m => { const n = { ...m }; delete n[evt.name]; return n })}>{'\u2715'}</button>}
                 </div>
               )
             })}
           </div>
-          <button className="export-btn" onClick={exportMapping} disabled={Object.keys(mapping).length === 0}>
-            Export Mapping JSON
-          </button>
+          <div className="add-event">
+            <input
+              type="text"
+              placeholder="Add event..."
+              value={newEventName}
+              onChange={e => setNewEventName(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && addEvent()}
+            />
+            <button onClick={addEvent} disabled={!newEventName.trim()}>+</button>
+          </div>
+          <div className="actions">
+            {integrated ? (
+              <button className="save-btn" onClick={saveToGame} disabled={Object.keys(mapping).length === 0}>
+                Save to Game
+              </button>
+            ) : (
+              <button className="export-btn" onClick={downloadMapping} disabled={Object.keys(mapping).length === 0}>
+                Export Mapping JSON
+              </button>
+            )}
+            <button className="download-btn" onClick={downloadMapping} disabled={Object.keys(mapping).length === 0}>
+              Export JSON
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -245,7 +324,7 @@ h2 { font-size: 14px; padding: 8px 0; color: #aaa; text-transform: uppercase; le
 .search:focus { border-color: #e94560; }
 .panels { flex: 1; display: flex; overflow: hidden; }
 .left { flex: 1; overflow-y: auto; padding: 8px 12px; border-right: 1px solid #0f3460; }
-.right { width: 340px; overflow-y: auto; padding: 8px 12px; display: flex; flex-direction: column; }
+.right { width: 380px; overflow-y: auto; padding: 8px 12px; display: flex; flex-direction: column; }
 .category { margin-bottom: 2px; }
 .cat-header { display: flex; align-items: center; gap: 6px; padding: 6px 8px; cursor: pointer; border-radius: 4px; user-select: none; }
 .cat-header:hover { background: #16213e; }
@@ -263,16 +342,32 @@ h2 { font-size: 14px; padding: 8px 0; color: #aaa; text-transform: uppercase; le
 .play-btn:disabled { color: #444; cursor: default; }
 .event-row { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-radius: 4px; border: 1px solid #0f3460; margin-bottom: 4px; }
 .event-row.active { border-color: #52b788; background: #1b4332; }
-.event-name { font-weight: 600; font-size: 13px; width: 90px; }
+.event-info { display: flex; flex-direction: column; width: 120px; }
+.event-name { font-weight: 600; font-size: 13px; }
+.event-hint { font-size: 10px; color: #666; }
 .event-sound { flex: 1; font-size: 12px; color: #888; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .assign-btn, .clear-btn { background: none; border: 1px solid #333; color: #aaa; cursor: pointer; border-radius: 3px; font-size: 12px; padding: 2px 6px; }
 .assign-btn:hover { border-color: #52b788; color: #52b788; }
 .clear-btn { color: #e94560; border-color: transparent; }
 .assign-banner { background: #1b4332; padding: 8px 12px; border-radius: 4px; margin-bottom: 8px; font-size: 13px; display: flex; align-items: center; gap: 8px; }
 .assign-banner button { background: none; border: 1px solid #52b788; color: #52b788; border-radius: 3px; cursor: pointer; padding: 2px 8px; }
-.export-btn { margin-top: auto; padding: 10px; background: #e94560; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 600; }
+.save-status { background: #16213e; padding: 8px 12px; border-radius: 4px; margin-bottom: 8px; font-size: 13px; display: flex; align-items: center; gap: 8px; color: #52b788; }
+.save-status button { background: none; border: none; color: #888; cursor: pointer; font-size: 12px; }
+.add-event { display: flex; gap: 4px; margin-top: 8px; }
+.add-event input { flex: 1; padding: 6px 10px; border: 1px solid #0f3460; border-radius: 4px; background: #1a1a2e; color: #e0e0e0; font-size: 13px; outline: none; }
+.add-event input:focus { border-color: #e94560; }
+.add-event button { background: #0f3460; border: none; color: #e0e0e0; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 600; }
+.add-event button:disabled { opacity: 0.4; cursor: default; }
+.actions { margin-top: auto; display: flex; gap: 8px; padding-top: 8px; }
+.save-btn { flex: 1; padding: 10px; background: #52b788; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 600; }
+.save-btn:disabled { background: #444; cursor: default; }
+.save-btn:hover:not(:disabled) { background: #6fcf97; }
+.export-btn { flex: 1; padding: 10px; background: #e94560; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 600; }
 .export-btn:disabled { background: #444; cursor: default; }
 .export-btn:hover:not(:disabled) { background: #ff6b6b; }
+.download-btn { padding: 10px; background: none; border: 1px solid #333; color: #aaa; border-radius: 4px; cursor: pointer; font-size: 13px; }
+.download-btn:disabled { opacity: 0.4; cursor: default; }
+.download-btn:hover:not(:disabled) { border-color: #666; color: #e0e0e0; }
 `
 document.head.appendChild(style)
 

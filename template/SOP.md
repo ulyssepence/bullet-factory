@@ -559,6 +559,8 @@ Every step must include at least one **juice** item — a small code-only feel t
   - [ ] Verified via playwright
 
 - [ ] **Audio** — Wire `audio.player.play()` for SFX: **per-weapon fire sounds** (each weapon type uses its own sound from audio palette), enemy death, XP pickup, player hurt, level up, boss spawn, elite spawn, evolution, meta-unlock, currency tick, purchase. Wire `audio.player.playMusic()` for placeholder music transitions (gameplay start, boss spawn, win/loss). Read `patterns/music.md`.
+  - [ ] Write `audio-events.json` in game root listing all sound events with placeholder paths and hint descriptions (see `patterns/audio-palette.md` for format)
+  - [ ] Wire `audio.player.preload()` to import from `src/audio-manifest.json` (create it initially with placeholder values matching audio-events.json)
   - [ ] Each weapon type plays its own distinct fire sound (from audio palette per-weapon assignments)
   - [ ] All other events have sound feedback
   - [ ] Sounds don't stack/clip (debounce rapid fires)
@@ -578,8 +580,8 @@ Start the dev server (`npm run dev <slug> -- --serve`). Present the playable gra
 
 ## Asset Selection/Generation
 
-- [ ] **Audio selection** — Use the SFX audition tool to preview and assign sounds. Run `npx tsx scripts/build.ts tool-audio-sfx --watch --serve` from the **project root**, open in browser. Audition sounds from the library, assign one per game event, export the mapping JSON. Copy exported `sound-mapping.json` into the game's `src/` and wire it into `audio.player.preload()`. Add per-weapon fire sounds as custom slots (e.g. `revolver-fire`, `shotgun-fire`). Read `patterns/audio-palette.md` for details.
-  - [ ] All sound slots have user-selected audio files
+- [ ] **Audio selection** — Run `npx tsx scripts/pick-audio.ts <slug>` from project root. Opens the SFX audition tool pre-filled with the game's events from `audio-events.json`. User auditions sounds, assigns one per event, clicks "Save to game". Selected files are copied to `static/audio/sfx/` and `src/audio-manifest.json` is updated. Read `patterns/audio-palette.md` for format details.
+  - [ ] All sound events have user-selected audio files
   - [ ] Each weapon type has a distinct fire sound
   - [ ] Per-weapon sounds wired in combat callbacks: `audio.player.play(weapon.type + '-fire')`
   - [ ] No placeholder sounds remain
