@@ -55,7 +55,10 @@ Draft all sections autonomously — do NOT ask the user for confirmation between
   > Font files:        static/fonts/*.woff2 (copied from fonts/ library)
   > Base size:         px (from library.json — normalized so fonts render at comparable visual size)
 
-- [ ] **Enemies** — Vary archetypes: walker, runner, tank, ranged, swarm. Each enemy needs a `meshPrompt` — a concise visual description for 3D mesh generation (silhouette, distinguishing features, materials). Think about what reads at top-down game zoom. (`patterns/game-spec.md` → `EnemyDef`)
+- [ ] **Art style for mesh generation** — Define a shared style block for mesh-manifest.json. All character and prop prompts will be prefixed with this. Read `patterns/mesh-style-coherence.md`.
+  > Style: (e.g. "Low-poly stylized, flat shading, bold saturated colors, mobile game aesthetic, T-pose")
+
+- [ ] **Enemies** — Vary archetypes: walker, runner, tank, ranged, swarm. Each enemy needs a `meshPrompt` — identity only (silhouette, features). Shared art style goes in mesh-manifest.json's `style` field — see `patterns/mesh-style-coherence.md`. (`patterns/game-spec.md` → `EnemyDef`)
   > ```
   > Enemy 1:  type=  health=  speed=  damage=  size=  xpValue=
   >           meshPrompt=  (e.g. "Stocky animatronic cowboy robot, mechanical joints, cowboy hat, T-pose, game character")
@@ -76,14 +79,14 @@ Draft all sections autonomously — do NOT ask the user for confirmation between
   >   auraColor=          (hex — for particle aura, usually accent or a unique color)
   > ```
 
-- [ ] **Boss encounters** — At least one boss per run (e.g. spawns at 5-minute mark or as wave finale). Unique behavior, large health pool, telegraphed attacks, reward on kill. Include `meshPrompt` — bosses should be visually imposing and distinct from regular enemies. (`patterns/game-spec.md` → `BossDef`)
+- [ ] **Boss encounters** — At least one boss per run (e.g. spawns at 5-minute mark or as wave finale). Unique behavior, large health pool, telegraphed attacks, reward on kill. Include `meshPrompt` — identity only (silhouette, features). Shared art style goes in mesh-manifest.json's `style` field — see `patterns/mesh-style-coherence.md`. (`patterns/game-spec.md` → `BossDef`)
   > ```
   > Boss 1:  name=  spawnTime=  health=  speed=  damage=  attacks=  reward=
   >          meshPrompt=  (e.g. "Massive armored mech boss, towering build, glowing weak points, T-pose, game character")
   > (complete one entry per boss — minimum 1, each with unique attacks and meshPrompt)
   > ```
 
-- [ ] **Weapons** — VS forms: melee swing, nearest-enemy projectile, radial burst, orbital, etc. Mark starting weapon. Include `meshPrompt` for the projectile/effect visual (what flies through the air or orbits the player). Read `patterns/game-spec.md` → `WeaponDef` and "Weapon balancing philosophy".
+- [ ] **Weapons** — VS forms: melee swing, nearest-enemy projectile, radial burst, orbital, etc. Mark starting weapon. Include `meshPrompt` for the projectile/effect visual — identity only, shared art style goes in mesh-manifest.json's `style` field. Read `patterns/game-spec.md` → `WeaponDef` and "Weapon balancing philosophy".
   > ```
   > Weapon 1 (starting):  type=  category=  damage=  cooldown=  projectileSpeed=  pierce=  count=
   >                        meshPrompt=  (e.g. "Small revolver bullet, brass casing, simple shape, game projectile")
@@ -104,7 +107,7 @@ Draft all sections autonomously — do NOT ask the user for confirmation between
   > (complete one sequence per weapon + 2-3 stat sequences — every weapon must have its own upgrade track)
   > ```
 
-- [ ] **Characters** — 2-3 playable characters with different starting weapons/stats. One unlocked by default, others via meta-progression. Include `meshPrompt` for each — should be visually distinct from enemies and from each other. Each character needs a short tagline and stat profile for the character select screen. (`patterns/game-spec.md` → `CharacterDef`)
+- [ ] **Characters** — 2-3 playable characters with different starting weapons/stats. One unlocked by default, others via meta-progression. Include `meshPrompt` for each — identity only (silhouette, features). Shared art style goes in mesh-manifest.json's `style` field — see `patterns/mesh-style-coherence.md`. Each character needs a short tagline and stat profile for the character select screen. (`patterns/game-spec.md` → `CharacterDef`)
   > ```
   > Character 1 (default):
   >   name=  tagline=  (one-liner, e.g. "Steady aim, iron will")
@@ -158,12 +161,14 @@ Draft all sections autonomously — do NOT ask the user for confirmation between
   >   (e.g. "Skip 5+ level-ups → 1.5× currency earned")
   > ```
 
-- [ ] **Map** — CA-based procedural terrain using `template/src/level/`. Define zones, density, boundaries, and optional motifs. (`patterns/level-generation.md` → CA-based section)
+- [ ] **Map** — CA-based procedural terrain using `template/src/level/`. Define zones, density, boundaries, and optional motifs. (`patterns/level-generation.md` → CA-based section). Tunables: `chunkSize` (cells per zone side, default 32), `caIterations` (CA smoothing passes, default from code — higher = smoother caves).
   > Zones (each becomes a region on the map with distinct CA density + palette):
   > ```
   > Zone 1: name=  density=  (0.0=open, 1.0=dense)
   > Zone 2: name=  density=
   > (define 2-4 zones themed to setting)
+  > chunkSize=  (default 32)
+  > caIterations=  (default from DEMO_CONFIG — tune for cave smoothness)
   > ```
   >
   > Boundaries between zones (optional):
@@ -186,7 +191,7 @@ Draft all sections autonomously — do NOT ask the user for confirmation between
   > (complete one entry per shrine type — minimum 2)
   > ```
 
-- [ ] **Terrain & props** — Define mesh prompts for all static objects (no rig/animation). Include wall variants, destructibles, shrines, pickups/drops, and environmental dressing. Each needs a `meshPrompt` describing the object for 3D generation. Think about what the player sees at game zoom — simple, readable silhouettes matter more than detail.
+- [ ] **Terrain & props** — Define mesh prompts for all static objects (no rig/animation). Include wall variants, destructibles, shrines, pickups/drops, and environmental dressing. Each needs a `meshPrompt` — identity only (silhouette, features). Shared art style goes in mesh-manifest.json's `style` field — see `patterns/mesh-style-coherence.md`. Think about what the player sees at game zoom — simple, readable silhouettes matter more than detail.
   > ```
   > Wall:           meshPrompt=  (e.g. "Weathered wooden saloon wall section, plank boards, rustic Western style")
   > Shrine:         meshPrompt=  (e.g. "Glowing mystical totem pole, carved symbols, magical aura")
@@ -279,6 +284,7 @@ Draft all sections autonomously — do NOT ask the user for confirmation between
 - [ ] **Music direction** — Describe the music mood/genre for each game phase. These are prompts for music generation (`npm run generate-music <slug>`). Read `patterns/music.md` for prompt tips and format.
   > BPM: ___  Key: ___
   > ```
+  > Menu (loop):      (e.g. "120 BPM, C minor, ambient pad, gentle arpeggios, seamless loop, no fade in, no fade out")
   > Gameplay (loop):  (e.g. "120 BPM, C minor, ambient western guitar, driving percussion, seamless loop, no fade in, no fade out")
   > Boss fight (loop):  (e.g. "120 BPM, C minor, menacing orchestral hit, distorted bass, war drums, seamless loop, no fade in, no fade out")
   > Victory (sting):  (e.g. "C major, triumphant brass fanfare, 8 bars")
@@ -329,6 +335,7 @@ Every step must include at least one **juice** item — a small code-only feel t
   >     healthMultiplier: 1.0,
   >     speedMultiplier: 1.0,
   >     spawnRateMultiplier: 1.0,
+  >     despawnRadius: 60,  // units — enemies beyond this distance from player are recycled
   >   },
   >   elites: {
   >     // These are 1.0-based multipliers applied ON TOP of spec.elites values.
@@ -401,9 +408,8 @@ Every step must include at least one **juice** item — a small code-only feel t
     - [ ] Elite enemies always show health bar (same style as 2.8 tanky enemy bars, but always visible)
     - [ ] Elite enemies drop bonus loot per `dropBonus` config
   - [ ] Juice: (invent one — screen flash or brief slow-mo on elite spawn recommended)
+  - [ ] Offscreen despawn: enemies beyond `despawnRadius` (tuning parameter, default ~60 units / ~2 screen widths) are returned to pool. Spawn budget recycles them at the ring perimeter ahead of the player. Without this, entity count grows unbounded in scrolling arenas.
   - [ ] Verified via playwright
-
-- [ ] **Perf check** — 200 enemies + 50 projectiles on screen, tick stays <16ms. If not, switch to spatial hash / instanced mesh before continuing.
 
 - [ ] **2.6 Weapons & combat** — Weapons from spec. Import `systems/combat` for `tickWeapons`, `tickProjectiles`, `tickPickups`. Wire `CombatCallbacks` for audio/particles (systems are logic-only). Pool projectiles.
   - [ ] Weapons auto-fire
@@ -413,6 +419,26 @@ Every step must include at least one **juice** item — a small code-only feel t
   - [ ] `particles.emit('burst', ...)` on enemy death, `'radial'` on AoE hits (use palette colors)
   - [ ] Juice: (invent one)
   - [ ] Verified via playwright
+
+- [ ] **2.10 Progression** — XP gems → bar → level-up choices. Import `systems/progression` for `xpToNext`, `selectChoices`, `applyChange`. Read `patterns/progression.md` for UI (weapon cap, reroll/banish). Pool XP gems. (Magnet pull wired later in 2.7 Pickups.)
+  - [ ] XP bar fills
+  - [ ] Level-up modal with correct choices
+  - [ ] Selection applies upgrade
+  - [ ] Weapon cap enforced — no new weapons offered when at `maxWeapons`
+  - [ ] Weapon icon/mesh thumbnail shown next to each upgrade option
+  - [ ] Reroll button spends a charge and re-rolls choices (charge count visible)
+  - [ ] Skip button dismisses level-up without choosing
+  - [ ] Banish button removes selected upgrade from pool (banish count visible)
+  - [ ] Juice: (invent one)
+  - [ ] Verified via playwright
+
+- [ ] **Perf check** — 200 enemies + 50 projectiles on screen, tick stays <16ms. The profiler is in `src/profile.ts` — it's already imported and wired into `tick()` and the renderer. To use it:
+  1. Wrap every system call in `tick()` with `profile.start/stop` pairs using dotted keys (e.g. `tick.enemies`, `tick.weapons`, `tick.projectiles`). For any system >2ms, add sub-keys for inner loops (e.g. `tick.enemies.separation`).
+  2. Run `PROFILE=1 npm run dev`. The console prints a tree every 60 frames with avg/max per system. Frames >16ms auto-dump as `[profile:spike]`.
+  3. For Playwright automation: `await page.evaluate(() => window.__PROFILE_DATA__)` returns structured JSON — no console parsing needed.
+  4. Fix the system the profiler identifies. Don't guess.
+  - [ ] Movement stress test: hold one direction for 30s at peak load. Tick <16ms as chunks activate/deactivate, flow field recalculates, enemies despawn/respawn.
+  - [ ] If tick is under budget but frames still drop: check `renderer.info` in profiler output — draw calls >200 → instancing/merging, triangles >500k → LOD/culling.
 
 - [ ] **2.6b Stats tracking** — Wire a `RunStats` accumulator into the game manager. Every kill, damage event, pickup, etc. increments the relevant counter. Stats are pure data — no rendering yet (that's 2.14).
   - [ ] `RunStats` object tracks: kills (total + per enemy type), damage dealt (total + per weapon), damage taken, XP collected, pickups collected (per type), elites killed, bosses killed, level-ups skipped (for ascetic bonus)
@@ -439,18 +465,6 @@ Every step must include at least one **juice** item — a small code-only feel t
 - [ ] **2.9 Destructibles & shrines** — Weapons damage destructibles → loot drops. Shrines → pause + choice modal.
   - [ ] Destructibles break and drop pickups
   - [ ] Shrines pause and present choices
-  - [ ] Juice: (invent one)
-  - [ ] Verified via playwright
-
-- [ ] **2.10 Progression** — XP gems → magnet pull → bar. Import `systems/progression` for `xpToNext`, `selectChoices`, `applyChange`. Read `patterns/progression.md` for UI (weapon cap, reroll/banish). Pool XP gems.
-  - [ ] XP bar fills
-  - [ ] Level-up modal with correct choices
-  - [ ] Selection applies upgrade
-  - [ ] Weapon cap enforced — no new weapons offered when at `maxWeapons`
-  - [ ] Weapon icon/mesh thumbnail shown next to each upgrade option
-  - [ ] Reroll button spends a charge and re-rolls choices (charge count visible)
-  - [ ] Skip button dismisses level-up without choosing
-  - [ ] Banish button removes selected upgrade from pool (banish count visible)
   - [ ] Juice: (invent one)
   - [ ] Verified via playwright
 
@@ -564,9 +578,10 @@ Start the dev server (`npm run dev <slug> -- --serve`). Present the playable gra
 
 ## Asset Selection/Generation
 
-- [ ] **Audio selection** — Run `npm run pick-audio <slug>` with slots for **every weapon** (using per-weapon names from pre-production) plus all global sound events. Example: `npm run pick-audio <slug> --slot revolver-fire "sharp crack, western six-shooter" --slot shotgun-fire "heavy boom, double barrel" --slot hit "meaty impact" --slot enemy-death "crunch" --slot elite-spawn "menacing rumble" --slot currency-tick "coin clink" --slot purchase "cash register" ...`. This launches a web UI where the user previews sounds from the library and assigns them. Wire per-weapon sounds in combat callbacks: `audio.player.play(weapon.type + '-fire')`.
+- [ ] **Audio selection** — Use the SFX audition tool to preview and assign sounds. Run `npx tsx scripts/build.ts tool-audio-sfx --watch --serve` from the **project root**, open in browser. Audition sounds from the library, assign one per game event, export the mapping JSON. Copy exported `sound-mapping.json` into the game's `src/` and wire it into `audio.player.preload()`. Add per-weapon fire sounds as custom slots (e.g. `revolver-fire`, `shotgun-fire`). Read `patterns/audio-palette.md` for details.
   - [ ] All sound slots have user-selected audio files
   - [ ] Each weapon type has a distinct fire sound
+  - [ ] Per-weapon sounds wired in combat callbacks: `audio.player.play(weapon.type + '-fire')`
   - [ ] No placeholder sounds remain
 
 - [ ] **Music generation** — Run `npm run generate-music <slug>`. Generates OGG Opus tracks via fal.ai (ACE-Step). User reviews/selects tracks. Wire into `audio.player.playMusic(track, { fade: 3 })` — one track per phase, crossfade between them on phase transitions. See `patterns/music.md`.
@@ -645,6 +660,7 @@ Start the dev server (`npm run dev <slug> -- --serve`). Present the playable gra
   - [ ] Verify effects stack well on big moments (not too much, not too little)
   - [ ] Verified via playwright
 
-- [ ] **Performance optimization** — Profile the worst case: peak enemies + projectiles + particles + post-processing. Budget: <16ms tick, <16ms render. Fix bottlenecks: instanced meshes, spatial hash tuning, particle budget, draw call batching.
+- [ ] **Performance optimization** — The profiler is already wired into `tick()` and the renderer (`src/profile.ts`). Instrument every system call in `tick()` with `profile.start/stop` pairs, then run `PROFILE=1 npm run dev`. Stress-test peak enemies + projectiles + particles + post-processing. Read the avg/max tree and spike dumps to identify which systems exceed budget (<16ms tick, <16ms render). Fix the actual bottlenecks.
   - [ ] Peak scenario stays within frame budget
-  - [ ] No GC pauses during gameplay
+  - [ ] No GC pauses during gameplay (check for max >> avg in profiler output)
+  - [ ] If tick is under budget but frames still drop: check `renderer.info` — draw calls >200 → instancing/merging, triangles >500k → LOD/culling.

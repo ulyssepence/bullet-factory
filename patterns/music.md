@@ -12,6 +12,7 @@ Typical VS-like needs 2-4 tracks:
 
 | Track | Loop | Fade in | Notes |
 |-------|------|---------|-------|
+| `menu.ogg` | yes | 1s | Title/meta screen, crossfade to gameplay on run start |
 | `gameplay.ogg` | yes | 3s | Main loop, plays most of the run |
 | `boss.ogg` | yes | 1s | Triggers on boss spawn, fast crossfade |
 | `victory.ogg` | no | 0.5s | One-shot sting on win |
@@ -72,6 +73,13 @@ audio.player.playMusic('defeat', { fade: 0.5, loop: false })
 Wire `playMusic` calls to game state changes. Keep it simple — discrete transitions, not continuous intensity mapping:
 
 ```ts
+// Menu / meta screen
+audio.player.playMusic('menu', { fade: 1 })
+// Run starts — crossfade
+audio.player.playMusic('gameplay', { fade: 3 })
+```
+
+```ts
 // In game loop or store subscriber
 if (bossAlive && currentTrack !== 'boss') {
   audio.player.playMusic('boss', { fade: 1 })
@@ -100,6 +108,7 @@ The smoke test (`scripts/smoke-test.ts`) includes a basic audio health check. Ga
 
 ```
 games/<slug>/static/audio/music/
+  menu.ogg
   gameplay.ogg
   boss.ogg
   victory.ogg

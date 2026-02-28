@@ -29,6 +29,15 @@ const result = assembleArenaV2({ ...DEMO_CONFIG, seed: 42 })
 
 `DEMO_CONFIG` is a 4x4 zone grid (3 zones, chunkSize=32, seed=42). Games override zones, boundaries, chunkSize, corridors, and seed.
 
+### ZoneDef fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `density` | `number` | Wall fill probability (0.50–0.65 typical). Higher = more walls. |
+| `motifs` | `string[][]` | ASCII art stamps placed at chunk centers (`#`=wall, `.`=floor). |
+| `hue` | `number` | Zone color hue (0–360). Used by palette/rendering. |
+| `smoothingPasses` | `number?` | Wall contour smoothing (default 2). 0 = angular/crystalline, 1 = slightly softened, 3+ = organic/blobby. Set per zone to vary feel — e.g. a cave zone at 3, a fortress zone at 0. |
+
 ---
 
 ## Chunk-based toroidal map (LEGACY — do not use for new games)

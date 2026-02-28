@@ -4,6 +4,7 @@
 fonts/*.woff2
 games/
 generated/
+**/dist/
 node_modules/
 playwright.config.ts
 smoke-screenshots/

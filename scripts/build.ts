@@ -15,15 +15,19 @@ if (!slug) {
   process.exit(1)
 }
 
-const gameDir = path.resolve('games', slug)
+function resolveProjectDir(slug: string): string {
+  const candidates = [path.resolve('games', slug), path.resolve('tools', slug)]
+  for (const dir of candidates) {
+    if (fs.existsSync(path.join(dir, 'src', 'main.tsx'))) return dir
+  }
+  console.error(`No project "${slug}" found in games/ or tools/`)
+  process.exit(1)
+}
+
+const gameDir = resolveProjectDir(slug)
 const srcDir = path.join(gameDir, 'src')
 const distDir = path.join(gameDir, 'dist')
 const entry = path.join(srcDir, 'main.tsx')
-
-if (!fs.existsSync(entry)) {
-  console.error(`No entry found at ${entry}`)
-  process.exit(1)
-}
 
 const staticDir = path.join(gameDir, 'static')
 
@@ -75,6 +79,7 @@ const buildOptions: esbuild.BuildOptions = {
   sourcemap: true,
   define: {
     'process.env.NODE_ENV': watch ? '"development"' : '"production"',
+    '__PROFILE__': process.env.PROFILE === '1' ? 'true' : 'false',
   },
   minify: !watch,
   logLevel: 'info',

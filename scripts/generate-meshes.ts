@@ -56,6 +56,7 @@ const POLY_BUDGET = {
 } as const
 
 interface Manifest {
+  style?: string
   characters: MeshEntry[]
   props: MeshEntry[]
 }
@@ -179,8 +180,9 @@ async function main() {
   }
 
   const manifest: Manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"))
-  const characters = manifest.characters ?? []
-  const props = manifest.props ?? []
+  const stylePrefix = manifest.style ? manifest.style.trim() + ', ' : ''
+  const characters = (manifest.characters ?? []).map(e => ({ ...e, prompt: stylePrefix + e.prompt }))
+  const props = (manifest.props ?? []).map(e => ({ ...e, prompt: stylePrefix + e.prompt }))
   const outDir = path.join(gameDir, "static", "models")
   fs.mkdirSync(outDir, { recursive: true })
 

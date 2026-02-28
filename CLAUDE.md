@@ -26,8 +26,10 @@ All games share root `node_modules`. All scripts run from **project root**, not 
 
 `npm run new <slug> [prompt...]` — scaffolds from `template/`, launches Claude session that works through SOP autonomously. Pauses only at "User review" gates.
 
-## Key References
+## Build Output
 
-- `patterns/game-architecture.md` — core game structure
-- `docs/2026-02-23-game-framework-conventions-brainstorm.md` — technical conventions
-- `docs/2026-02-23_14-07-55_Game-engine-decision Three.js Capacitor.md` — stack rationale
+`dist/` directories are ephemeral build output — safe to delete anytime. Every asset in `dist/` is either bundled from `src/` or copied from `static/`. Run `npm run clean` to remove all of them, or `npm run build <slug>` to regenerate.
+
+## Key Pattern
+
+`patterns/game-architecture.md` — read before building a game.

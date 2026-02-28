@@ -8,7 +8,8 @@
     "build:ios": "npx tsx scripts/build-mobile.ts",
     "build:android": "npx tsx scripts/build-mobile.ts --android",
     "smoke-test": "npx tsx scripts/smoke-test.ts",
-    "generate-music": "npx tsx scripts/generate-music.ts"
+    "generate-music": "npx tsx scripts/generate-music.ts",
+    "clean": "rm -rf games/*/dist tools/*/dist"
   },
   "dependencies": {
     "@capacitor/android": "^8.1.0",
