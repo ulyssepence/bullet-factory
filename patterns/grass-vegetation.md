@@ -2,36 +2,68 @@
 
 Procedural billboard vegetation using the star-pattern quad technique (3 intersecting quads at 60° intervals = 12 tris per clump). Used in SOP step 3.4 (Environmental dressing). The same `InstancedBufferGeometry` + custom shader pipeline handles all vegetation styles — what changes is the fragment shader silhouette, the animation behavior, and the per-zone config.
 
-Reference demo: `games/tool-grass/` — standalone visual testbed with leva controls.
+Reference demo: `tools/grass/` — standalone visual testbed with leva controls and 10 example shaders to switch between.
 
-## Vegetation styles
+## Custom shaders
 
-The fragment shader draws the silhouette procedurally from UVs. Each style below changes the shape, animation, and defaults. All use the same star-pattern base geometry and instancing pipeline.
+The grass system accepts custom vertex and fragment shaders per zone via `ZoneGrassConfig.vertexShader` and `ZoneGrassConfig.fragmentShader`. When omitted, it falls back to the default 4-blade grass shader. This lets each game create bespoke vegetation — wheat fields, crystal shards, mushroom forests, firefly swarms — whatever fits the world.
 
-### `grass` — short blades, gentle wind sway
-Default choice for natural terrain. 4 thin tapered triangles per quad face, narrow at tip, wide at base. Sways with layered sine wind. Height 0.15–0.4. Reads as textured ground.
+The fragment shader draws the silhouette procedurally from UVs using `discard`. Write a new fragment shader for each zone's vegetation to make it unique to the game. Don't limit yourself to the examples below — combine techniques, invent new shapes, match the game's atmosphere.
 
-### `wheat` — tall stalks with seed heads
-Taller than grass (0.4–0.8). Fragment shader draws 2–3 narrow stalks per quad face with a wider bulge near the tip (the seed head — achieved by widening the taper function above y > 0.7). Slower, heavier wind sway (lower frequency sines, higher amplitude). Golden/amber color shift works well: `baseColorShift: 0.9`, `tipColorShift: 1.4`. Good for plains, farmland, post-apocalyptic overgrowth.
+### Fragment shader contract
 
-### `bushes` — dense rounded clumps
-Short and wide (height 0.2–0.4, bladeWidth 0.15–0.25). Fragment shader draws 2 fat rounded shapes per quad face (smooth edges via smoothstep rather than hard taper). Minimal wind — stiff, just a subtle wobble (`windStrength: 0.05–0.1`). Higher density per cell (4–8) but fewer cells get them (scatter with noise threshold). Darker color shift (`baseColorShift: 0.7`, `tipColorShift: 0.95`) — bushes are darker than ground, not lighter. Good for forests, hedgerows, alien terrain.
+Your custom fragment shader receives these varyings and uniforms:
 
-### `tendrils` — thin curling vines
-Very narrow (bladeWidth 0.03–0.05), medium height (0.3–0.6). Fragment shader draws 1–2 ultra-thin lines per quad face. Wind animation uses `sin(uv.y * 3.0 + time)` for a coiling/writhing motion instead of the standard linear bend — the whole stalk undulates. Low density (1–2 per cell). Tip color can shift toward a contrasting hue (e.g. purple tips on green base) for alien/corruption zones. Good for swamps, corruption biomes, alien worlds, caves.
+```glsl
+// Varyings (from vertex shader)
+varying vec2 vUv;         // 0–1 across each quad face
+varying float vColorVar;  // 0–1 random per instance (use for color/height variation)
 
-### `crystals` — rigid geometric shards
-No wind animation at all (`windStrength: 0`). Fragment shader draws 1–2 hard-edged triangular shapes per quad face with flat tops (discard above a hard cutoff, no taper curve). Height 0.15–0.35. Add a slight emissive boost in the fragment shader (`gl_FragColor.rgb += tipColor * 0.15`) for a faint glow. `tipColorShift: 1.5–2.0` for bright tips. Very sparse (density 0.5–1). Good for caves, magical zones, sci-fi terrain.
+// Uniforms (always available)
+uniform vec3 uBaseColor;
+uniform vec3 uTipColor;
+uniform float uBladeWidth;
+uniform float uTime;      // accumulated time (for animation)
+```
 
-### `mushrooms` — short bulbous caps on thin stems
-Height 0.1–0.25. Fragment shader draws a thin vertical line (stem, y < 0.6) topped by a wider dome shape (cap, y > 0.6 — semicircle via `1.0 - (localX*localX + (y-0.8)*(y-0.8))` distance field). No wind on the stem, very slight cap wobble. Sparse (density 1–2), placed with noise clustering so they appear in groups of 3–5 with gaps between. Base color darker than ground, cap color can be shifted toward red/orange/purple. Good for forests, caves, fairy-tale, fungal biomes.
+You can declare additional uniforms and pass them via `extraUniforms` on the config.
 
-### `reeds` — tall thin verticals near water/hazard edges
-Similar to wheat but thinner, no seed head. Height 0.5–1.0, bladeWidth 0.03. Fragment shader draws 2–3 perfectly straight thin lines. Placement rule: only spawn within 2–3 cells of HAZARD cells (water edges). Gentle uniform sway. Color: base = ground color, tips slightly lighter. Good for swamps, rivers, lakesides.
+### Vertex shader contract
 
-### Choosing a style
+The default vertex shader handles wind via layered sine waves. Override it via `vertexShader` for different animation (floating, static, undulating). It must declare and use these instance attributes:
 
-The style is selected in the SOP dressing choices block. Games can mix styles across zones — e.g. zone 0 gets `grass`, zone 1 gets `mushrooms`, zone 2 gets `crystals`. The fragment shader variant is selected per-zone via a `style` field on `ZoneGrassConfig`.
+```glsl
+attribute vec3 aOffset;    // world position
+attribute float aRotation; // Y-axis rotation
+attribute float aScale;    // scale multiplier
+attribute float aColorVar; // 0–1 random seed
+```
+
+And these uniforms: `uTime`, `uWindSpeed`, `uWindStrength`, `uWindDirection` (vec2), `uBladeHeight`, `uBladeHeightVar`.
+
+### Shader techniques
+
+Key fragment shader techniques for vegetation silhouettes:
+
+| Technique | How | Good for |
+|-----------|-----|----------|
+| **Tapered blades** | `halfWidth = (1.0 - y) * scale`, discard outside | Grass, reeds, thorns |
+| **Seed heads / bulges** | `sin(headY * PI)` widens shape at top | Wheat, cattails |
+| **Dome caps** | `sqrt(1 - (capY*2-1)^2)` semicircle discard | Mushrooms, toadstools |
+| **Petal disc** | Polar coords: `cos(angle * N)` modulates radius | Flowers, dandelions |
+| **Sawtooth edges** | `fract(y * toothCount)` modulates width | Ferns, palm fronds |
+| **Sine-edge ribbon** | `sin(y * freq + time)` offsets discard boundary | Seaweed, kelp, tendrils |
+| **Noise sphere** | `noise2d(uv * scale) > threshold` inside circle SDF | Dandelion puffs, spores |
+| **Angular shards** | Hard asymmetric triangle boundaries, no taper curve | Crystals, ice, spikes |
+| **Circle SDF glow** | `smoothstep(size, 0, length(uv - 0.5))` + additive blend | Fireflies, embers, sparks |
+
+### Example shaders
+
+10 working example shaders are in `tools/grass/src/shaders.ts` — browse them for reference or preview them live with `npm run dev grass`. They cover: classic grass, wheat, wildflowers, mushrooms, crystal spikes, fireflies, seaweed/kelp, ferns, thorns/spikes, dandelion puffs.
+
+### Inspiration (not a menu)
+
+These are starting points. A horror game might combine the thorn silhouette with pulsing red emissive. A fairy-tale might use the mushroom dome with iridescent HSV cycling. A sci-fi game might write an entirely new shader with hexagonal grid patterns. The system takes any valid GLSL fragment shader — be creative.
 
 ## Architecture
 
@@ -63,13 +95,17 @@ Each zone can define grass parameters or opt out entirely. Zones representing wa
 
 ```ts
 type ZoneGrassConfig = {
-  density: number       // clumps per floor cell (e.g. 3-8)
-  bladeHeight: number   // base height in world units (0.15-0.4 for gameplay)
-  bladeHeightVar: number // ±variation (0.05-0.15)
-  bladeWidth: number    // fragment shader width (0.06-0.12)
-  baseColorShift: number // multiplier on ground color for blade base (0.8-0.95 = darken)
-  tipColorShift: number  // multiplier for blade tip (1.1-1.3 = lighten)
-  windStrength: number   // 0-1 displacement amplitude
+  density: number           // clumps per floor cell (e.g. 3-8)
+  bladeHeight: number       // base height in world units (0.15-0.4 for gameplay)
+  bladeHeightVar: number    // ±variation (0.05-0.15)
+  bladeWidth: number        // fragment shader width (0.06-0.12)
+  baseColorShift: number    // multiplier on ground color for blade base (0.8-0.95 = darken)
+  tipColorShift: number     // multiplier for blade tip (1.1-1.3 = lighten)
+  windStrength: number      // 0-1 displacement amplitude
+  vertexShader?: string     // custom GLSL vertex shader (defaults to wind shader)
+  fragmentShader?: string   // custom GLSL fragment shader (defaults to 4-blade grass)
+  extraUniforms?: Record<string, { value: any }>  // additional uniforms for custom shaders
+  materialConfig?: Partial<{ blending: number; depthWrite: boolean; transparent: boolean; alphaTest: number }>
 }
 ```
 

@@ -22,6 +22,8 @@ interface GameSpec {
     accent: string                        // UI highlights, XP gems
     enemy: Record<string, string>         // enemyType → hex color
   }
+  // All downstream colors (zone tints, grass, UI bg) derive from these 5 roles.
+  // See patterns/palette.md. No hardcoded hex elsewhere in game code.
 
   map: {
     chunkSize: number                     // cells per side (e.g. 32)

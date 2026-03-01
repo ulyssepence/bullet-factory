@@ -9,6 +9,20 @@ export interface PlayerState {
   speed: number
 }
 
+export interface AccessibilitySettings {
+  reduceShake: boolean
+  disableFlash: boolean
+  reduceHitstop: boolean
+}
+
+export interface RunTelemetry {
+  sessionStartMs: number
+  firstLevelupMs: number | null
+  deathCount: number
+  waveReached: number
+  enemyTypesEncountered: Record<string, true>
+}
+
 export interface GameState {
   phase: GamePhase
   player: PlayerState
@@ -16,4 +30,6 @@ export interface GameState {
   run: {
     elapsed: number
   }
+  accessibility: AccessibilitySettings
+  telemetry: RunTelemetry | null
 }

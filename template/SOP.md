@@ -37,7 +37,7 @@ Draft all sections autonomously — do NOT ask the user for confirmation between
   > Screen transition:   fade / pixelate / wipe-down / dissolve / glitch (pick one that matches tone)
   > Terrain archetype:   natural / structured / mixed / open (see `docs/2026-02-26_00-59-53_Organic terrain from grid data in VS-likes.md`)
 
-- [ ] **Palette** — These are graybox colors, not final art. What matters is **high contrast** — player, enemies, and pickups must be instantly distinguishable from the ground. Don't chase thematic colors; chase readability. From the **project root**, run `npx tsx scripts/preview-palettes.ts ENEMY_COUNT`, pick the best option, fill in table. User reviews with rest of pre-production. (`patterns/game-spec.md` → `palette`)
+- [ ] **Palette** — These are graybox colors, not final art. What matters is **high contrast** — player, enemies, and pickups must be instantly distinguishable from the ground. Don't chase thematic colors; chase readability. From the **project root**, run `npx tsx scripts/preview-palettes.ts <slug>` to open the web picker. Select a whole palette or tweak individual colors. Palette auto-saves to spec.ts on "Apply". See `patterns/palette.md`. User reviews with rest of pre-production. (`patterns/game-spec.md` → `palette`)
   > Seed:
   > | Role | Hex | Notes |
   > |------|-----|-------|
@@ -58,7 +58,7 @@ Draft all sections autonomously — do NOT ask the user for confirmation between
 - [ ] **Art style for mesh generation** — Define a shared style block for mesh-manifest.json. All character and prop prompts will be prefixed with this. Read `patterns/mesh-style-coherence.md`.
   > Style: (e.g. "Low-poly stylized, flat shading, bold saturated colors, mobile game aesthetic, T-pose")
 
-- [ ] **Enemies** — Vary archetypes: walker, runner, tank, ranged, swarm. Each enemy needs a `meshPrompt` — identity only (silhouette, features). Shared art style goes in mesh-manifest.json's `style` field — see `patterns/mesh-style-coherence.md`. (`patterns/game-spec.md` → `EnemyDef`)
+- [ ] **Enemies** — Vary archetypes: walker, runner, tank, ranged, swarm. Each enemy needs a `meshPrompt` — identity only (silhouette, features). Shared art style goes in mesh-manifest.json's `style` field — see `patterns/mesh-style-coherence.md`. **RIGGING CONSTRAINT:** All enemies are rigged via Meshy→Mixamo, which only works on humanoid bipedal meshes. Every enemy prompt MUST describe a humanoid figure with exactly two arms and two legs. No extra limbs, no quadrupeds, no amorphous creatures. Convey alien/monstrous through proportions, skin, and features — not body plan. (`patterns/game-spec.md` → `EnemyDef`)
   > ```
   > Enemy 1:  type=  health=  speed=  damage=  size=  xpValue=
   >           meshPrompt=  (e.g. "Stocky animatronic cowboy robot, mechanical joints, cowboy hat, T-pose, game character")
@@ -79,7 +79,7 @@ Draft all sections autonomously — do NOT ask the user for confirmation between
   >   auraColor=          (hex — for particle aura, usually accent or a unique color)
   > ```
 
-- [ ] **Boss encounters** — At least one boss per run (e.g. spawns at 5-minute mark or as wave finale). Unique behavior, large health pool, telegraphed attacks, reward on kill. Include `meshPrompt` — identity only (silhouette, features). Shared art style goes in mesh-manifest.json's `style` field — see `patterns/mesh-style-coherence.md`. (`patterns/game-spec.md` → `BossDef`)
+- [ ] **Boss encounters** — At least one boss per run (e.g. spawns at 5-minute mark or as wave finale). Unique behavior, large health pool, telegraphed attacks, reward on kill. Include `meshPrompt` — identity only (silhouette, features). Shared art style goes in mesh-manifest.json's `style` field — see `patterns/mesh-style-coherence.md`. **Same rigging constraint as enemies: humanoid bipedal, two arms, two legs.** (`patterns/game-spec.md` → `BossDef`)
   > ```
   > Boss 1:  name=  spawnTime=  health=  speed=  damage=  attacks=  reward=
   >          meshPrompt=  (e.g. "Massive armored mech boss, towering build, glowing weak points, T-pose, game character")
@@ -161,6 +161,12 @@ Draft all sections autonomously — do NOT ask the user for confirmation between
   >   (e.g. "Skip 5+ level-ups → 1.5× currency earned")
   > ```
 
+- [ ] **Feedback profiles** — Customize feedback defaults from `patterns/game-feel.md`. Template defaults are sensible — only override what doesn't fit the game's tone.
+  > Shake intensity: (e.g. "default" or "reduced — chill game" or "amplified — chaotic game")
+  > Hitstop feel: (e.g. "default" or "minimal — fast-paced" or "heavy — weighty combat")
+  > Custom profiles: (e.g. "crit: heavy shake + 100ms hitstop + radial particles")
+  > Flash style: (mesh emissive / postfx uniform / CSS overlay / none)
+
 - [ ] **Map** — CA-based procedural terrain using `template/src/level/`. Define zones, density, boundaries, and optional motifs. (`patterns/level-generation.md` → CA-based section). Tunables: `chunkSize` (cells per zone side, default 32), `caIterations` (CA smoothing passes, default from code — higher = smoother caves).
   > Zones (each becomes a region on the map with distinct CA density + palette):
   > ```
@@ -210,7 +216,8 @@ Draft all sections autonomously — do NOT ask the user for confirmation between
   > ground:      style= (fallen leaves | pebbles | snow patches | puddles | none)
   > atmosphere:  style= (flies/gnats | floating embers | dust motes | fireflies | spores | none)
   >              density=  color=  drift=
-  > fog/haze:    style= (ground fog | heat shimmer | volumetric light shafts | none)
+  > fog/haze:    style= (depth fog | heat shimmer | volumetric light shafts | none)
+  >              colorNear=  colorFar=  start=  end=  intensity=  noiseScale=
   > ```
 
 - [ ] **Pickup types** — Define drops beyond XP gems. Each pickup needs spawn rules and a `meshPrompt` (defined in Terrain & props above).
@@ -367,6 +374,16 @@ Every step must include at least one **juice** item — a small code-only feel t
   - [ ] `window.__tuning` accessible in browser console
   - [ ] Cheats functional: `__tuning.cheats.immortal = true` prevents player death, `__tuning.cheats.gameSpeed = 2` doubles game speed (scales dt)
 
+- [ ] **2.1c Feedback system** — Wire feedback profiles from `template/src/feedback.ts`. Read `patterns/game-feel.md`. The template provides default profiles (`hit`, `kill`, `hurt`, `levelup`, `boss`) — customize per game.
+  - [ ] Feedback profiles reviewed and customized in `feedback.register()` calls (sound names match manifest, shake tiers match game intensity)
+  - [ ] `feedback.emit('hit', ...)` called on enemy damage
+  - [ ] `feedback.emit('kill', ...)` called on enemy death with XP popup text
+  - [ ] `feedback.emit('hurt', ...)` called on player damage
+  - [ ] `feedback.emit('levelup', ...)` called on level-up
+  - [ ] Flash handler wired via `feedback.setFlashHandler()` (mesh emissive, postfx, or CSS — pick one)
+  - [ ] Budget caps tested: 50+ simultaneous kills don't cause audio distortion or particle blowout
+  - [ ] Verified via playwright
+
 - [ ] **2.2 Level generation** — Use `assembleArenaV2()` from `template/src/level/generate.ts` (CA-based). Configure zones from Map section. Read `patterns/level-generation.md` (CA section) and `docs/2026-02-26_00-59-53_Organic terrain from grid data in VS-likes.md`. Apply organic terrain tier based on terrain archetype from Concept.
   - [ ] Arena generated via `assembleArenaV2()` with zone configs from spec
   - [ ] Walls render with correct palette color + graybox material style
@@ -379,17 +396,27 @@ Every step must include at least one **juice** item — a small code-only feel t
 - [ ] **2.2b Environmental dressing** — Add the procedural atmosphere layers chosen in pre-production. These are code-only — shader-based vegetation, particle effects, and ambient motion. Read `patterns/grass-vegetation.md` for vegetation and `patterns/environment-dressing.md` for the rest. Wire vegetation into chunk activation/deactivation lifecycle (build on activate, dispose on deactivate). Atmosphere particles are global (follow player).
   - [ ] Vegetation renders on walkable floor cells (if chosen) — uses `template/src/level/grass.ts`, `InstancedBufferGeometry`, palette-derived colors. Must not obscure gameplay (keep height ≤0.4, use `alphaTest` not `transparent`)
   - [ ] Atmosphere particles emit continuously (if chosen) — custom shader for drift/glow, pooled
+    > **Particle origin behavior:**
+    > - Ambient/weather particles (rain, snow, dust): update emitter origin to follow camera position each frame using `handle.update([camX, camY, camZ])`. Particles already in flight continue on their original trajectory (velocity is baked at spawn time in the vertex shader).
+    > - Player-attached effects (aura, powerup glow): update emitter origin to player position.
+    > - World-anchored effects (fire, shrine glow): static origin, don't follow.
   - [ ] Ground scatter placed via noise (if chosen) — small instanced quads/meshes at floor level
   - [ ] All dressing uses palette colors and complements the game's mood
   - [ ] No significant FPS drop (budget: <2ms total for all dressing)
   - [ ] Juice: (the dressing itself is the juice)
   - [ ] Verified via playwright
 
-- [ ] **2.3 Player** — Player capsule, WASD movement, camera follow, wall collision. Import `systems/collision` for `resolvePlayerCollision` and `wrapPosition`, `systems/grid` for grid utilities.
+- [ ] **2.3 Player** — Player capsule, WASD movement, camera follow, wall collision. Import `systems/collision` for `resolvePlayerCollision` and `wrapPosition`, `systems/grid` for grid utilities. Mount `<FpsOverlay />` (from `template/src/fps-overlay`) in scene root — remove in polish phase.
   - [ ] Player moves 4 directions, camera follows
   - [ ] Walls block player
+  - [ ] FPS overlay visible in top-right corner
   - [ ] Juice: (invent one)
   - [ ] Verified via playwright
+
+- [ ] **2.3b Spawn & movement test** — Playwright verification (must pass before proceeding). Tests interact with game state via `page.evaluate(() => window.gameStore.getState()...)` or equivalent Zustand store access.
+  - [ ] Player movement: simulate right input for 3s → player x-position >5 units from spawn. Proves not stuck in wall.
+  - [ ] Health bar: mutate `player.health -= 20` → health bar DOM element visible and narrower than full width.
+  - [ ] XP gain: mutate `player.xp += 50` → XP bar DOM element visible and wider than 0.
 
 - [ ] **2.4 Enemy spawning & navigation** — Read `patterns/spawn-waves.md` and `patterns/level-generation.md` (enemy navigation). Import `systems/enemies` for wave director + spawn logic, `systems/navigation` for flow field BFS + LOS. Wire `EnemyConfig` from spec values.
   - [ ] Enemies spawn in waves at ring perimeter
@@ -419,6 +446,16 @@ Every step must include at least one **juice** item — a small code-only feel t
   - [ ] `particles.emit('burst', ...)` on enemy death, `'radial'` on AoE hits (use palette colors)
   - [ ] Juice: (invent one)
   - [ ] Verified via playwright
+  - [ ] **Playwright weapon verification (must pass before proceeding):**
+    - [ ] Projectile creation: wait 2s with starting weapon → at least 1 projectile in `state.projectiles`.
+    - [ ] Weapon upgrade: call upgrade function for starting weapon → weapon level increments and observable change (e.g. `count` increases for multi-projectile weapons).
+
+- [ ] **2.6c Balance sanity check** — Before proceeding, verify these balance invariants against spec + tuning values:
+  - [ ] **Fire rate vs damage:** If starting weapon cooldown < 0.3s, starting damage must be < 50% of weakest enemy HP. (High fire rate = low per-hit damage.)
+  - [ ] **Weapon range:** No starting weapon has infinite range. `projectileLifetime * projectileSpeed` or orbit radius must be < 15 units for level 1.
+  - [ ] **Player vs enemy speed:** Player base speed should be 1.1–1.3x the speed of the most common wave-1 enemy. Check `spec.player.speed` vs `spec.enemies[wave1Type].speed`.
+  - [ ] **Movement upgrades:** Spec must include at least one movement speed upgrade in the upgrade pool.
+  - [ ] **I-frame cooldown:** `contactInvuln` in tuning must be 0.3–1.0s. Too low = stun-lock deaths. Too high = invincible.
 
 - [ ] **2.10 Progression** — XP gems → bar → level-up choices. Import `systems/progression` for `xpToNext`, `selectChoices`, `applyChange`. Read `patterns/progression.md` for UI (weapon cap, reroll/banish). Pool XP gems. (Magnet pull wired later in 2.7 Pickups.)
   - [ ] XP bar fills
@@ -453,12 +490,14 @@ Every step must include at least one **juice** item — a small code-only feel t
   - [ ] Juice: (invent one)
   - [ ] Verified via playwright
 
-- [ ] **2.8 Combat feedback** — Damage numbers, hit flash, knockback, i-frames with visibility flicker. Read `patterns/game-juice.md` → Impact section.
-  - [ ] Damage numbers float up from hit entities
-  - [ ] Enemies flash white on hit
+- [ ] **2.8 Combat feedback** — Multi-channel feedback via `feedback.emit()`. Read `patterns/game-feel.md` → Feedback Profiles. Hit/kill/hurt profiles are wired in 2.1c — this step adds the remaining visual polish.
+  - [ ] Damage numbers float up via `feedback.emit('hit', { text: dmg })` popups
+  - [ ] Enemies flash white on hit (flash handler from 2.1c)
   - [ ] Enemies knocked back from damage source
   - [ ] Player has i-frames after taking damage (visibility flickers)
   - [ ] Health bars on tanky enemies: enemies with health > 1 hit show a small HP bar above their mesh when damaged (bar appears on first hit, fades after 3s of no damage). Use palette accent color for bar fill, dark background. Bosses use the larger overlay bar from 2.11 instead.
+  - [ ] Hitstop feels right: 40ms on hit, 60ms on kill, 80ms on hurt (adjust in feedback profiles)
+  - [ ] Screen shake directional: damage shake biased toward knockback direction
   - [ ] Juice: (invent one)
   - [ ] Verified via playwright
 
@@ -500,6 +539,9 @@ Every step must include at least one **juice** item — a small code-only feel t
       - [ ] Music volume slider or number (whichever fits better with aesthetic)
       - [ ] Sound volume slider or number (whichever fits better with aesthetic)
       - [ ] Screen darkness
+      - [ ] Reduce screen shake toggle → `store.accessibility.reduceShake`
+      - [ ] Disable flash effects toggle → `store.accessibility.disableFlash`
+      - [ ] Reduce hitstop toggle → `store.accessibility.reduceHitstop`
   - [ ] HUD updates during gameplay
   - [ ] Weapon HUD: row of weapon icons (bottom or side of screen) showing all currently held weapons
     - [ ] Each weapon shows: icon (graybox = colored shape per weapon category), cooldown ring/overlay that fills as weapon recharges
@@ -572,6 +614,15 @@ Every step must include at least one **juice** item — a small code-only feel t
 
 - [ ] **Cross-browser smoke test** — Run `npm run smoke-test http://localhost:3000 --browsers=chromium` (add `firefox,webkit` if available). All checks must pass. See `patterns/cross-browser-testing.md`.
 
+- [ ] **Game feel check** — Verify all feedback primitives work together. Read `patterns/game-feel.md`.
+  - [ ] Kill an enemy → shake + hitstop + particles + sound + popup all fire
+  - [ ] Kill 50 enemies in 1 frame (via cheats) → budget caps prevent audio distortion and particle blowout
+  - [ ] Toggle `reduceShake` → shake diminishes to 20%
+  - [ ] Toggle `disableFlash` → flash effects stop
+  - [ ] Toggle `reduceHitstop` → hitstop shortens to 30%
+  - [ ] Complete a run → telemetry summary logged to console with all fields populated
+  - [ ] Popups slow during hitstop (intentional — check visually)
+
 ### User review
 
 Start the dev server (`npm run dev <slug> -- --serve`). Present the playable graybox to the user: list what works, what each system does, and how to test it. Wait for approval or change requests before proceeding to Polish.
@@ -626,8 +677,9 @@ Start the dev server (`npm run dev <slug> -- --serve`). Present the playable gra
   - [ ] Zone colors use palette colors (verified against palette swatches in preview header)
   - [ ] Zone configs integrated into game rendering (multi-style GrayboxMaterial per mesh)
 
-- [ ] **3.4 Post-processing** — Add a full-screen post-processing pass. Read `patterns/post-processing.md`. Pick effects that fit the game's mood/tone (read Concept section). Use R3F `@react-three/postprocessing` (wraps pmndrs/postprocessing). Keep it subtle — enhance, don't obscure.
+- [ ] **3.4 Post-processing** — Add a full-screen post-processing pass. Read `patterns/post-processing.md`. Pick effects that fit the game's mood/tone (read Concept section). Use R3F `@react-three/postprocessing` (wraps pmndrs/postprocessing). Keep it subtle — enhance, don't obscure. If fog/haze was chosen in pre-production, add `FogEffect` from `template/src/fog.ts` to the same `EffectComposer` — it uses `EffectAttribute.DEPTH` and composes with `GamePostFX` in a single pass.
   - [ ] Post-processing pipeline renders
+  - [ ] Fog effect renders (if chosen) — distant objects fade into fog color gradient
   - [ ] No significant FPS drop (budget: <2ms)
   - [ ] Effects complement the game's palette/mood
 

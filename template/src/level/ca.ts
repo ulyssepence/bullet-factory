@@ -20,6 +20,7 @@ export type ArenaConfig = {
   zones: ZoneDef[]
   boundaries: BoundaryDef[]
   corridors?: { from: number; to: number }[]
+  spawnPoint?: [number, number]
   chunkSize: number
   caIterations: number
   seed: number

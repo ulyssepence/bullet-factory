@@ -5,11 +5,24 @@ import * as THREE from 'three'
 import { gameStore, tick, startRun, endRun, showMeta } from './store'
 import * as input from './input'
 import * as audio from './audio'
+import * as clock from './clock'
+import * as shake from './shake'
+import * as feedback from './feedback'
 import { GrayboxMaterial } from './graybox-material'
 import * as particles from './particles'
 import * as meta from './meta'
 import { MetaScreen } from './meta-screen'
 import * as profile from './profile'
+import * as palDerive from './palette-derive'
+
+const PALETTE = {
+  ground: '#334433',
+  wall: '#445544',
+  player: '#4488ff',
+  accent: '#ffdd44',
+  enemies: [] as string[],
+}
+const derived = palDerive.derive(PALETTE, [])
 
 function usePhase() {
   return useSyncExternalStore(
@@ -40,7 +53,7 @@ function Player() {
   return (
     <mesh ref={ref} position={[0, 0.5, 0]}>
       <capsuleGeometry args={[0.3, 0.8, 4, 8]} />
-      <GrayboxMaterial color="#4488ff" style="smooth" />
+      <GrayboxMaterial color={PALETTE.player} style="smooth" />
     </mesh>
   )
 }
@@ -49,7 +62,7 @@ function Ground() {
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
       <planeGeometry args={[50, 50]} />
-      <GrayboxMaterial color="#334433" style="organic" />
+      <GrayboxMaterial color={PALETTE.ground} style="organic" />
     </mesh>
   )
 }
@@ -57,14 +70,21 @@ function Ground() {
 function GameLoop() {
   const gl = useThree(s => s.gl)
   useEffect(() => { if (__PROFILE__) profile.renderer(gl) }, [gl])
-  useFrame((_, dt) => tick(dt))
+  useFrame((_, dt) => {
+    clock.tick(dt)
+    const { simDt, vizDt } = clock.getState()
+    tick(simDt)
+    const acc = gameStore.getState().accessibility
+    shake.tick(vizDt, acc.reduceShake)
+  })
   return null
 }
 
 function FollowCamera() {
   useFrame(({ camera }) => {
     const [px, py, pz] = gameStore.getState().player.position
-    camera.position.set(px, py + 10, pz + 8)
+    const [sx, sy] = shake.getOffset()
+    camera.position.set(px + sx, py + 10 + sy, pz + 8)
     camera.lookAt(px, py, pz)
   })
   return null
@@ -75,10 +95,10 @@ function MenuScreen() {
     <div style={{
       position: 'absolute', inset: 0,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: '#111', color: '#fff', fontFamily: 'sans-serif',
+      background: derived.uiBackground, color: derived.uiText, fontFamily: 'sans-serif',
     }}>
       <button
-        onClick={() => startRun()}
+        onClick={() => { feedback.reset(); shake.reset(); clock.reset(); startRun() }}
         style={{ padding: '16px 48px', fontSize: 24, cursor: 'pointer' }}
       >
         Play
@@ -127,6 +147,7 @@ function MetaWrapper() {
   }
 
   function handlePlay() {
+    feedback.reset(); shake.reset(); clock.reset()
     startRun()
   }
 

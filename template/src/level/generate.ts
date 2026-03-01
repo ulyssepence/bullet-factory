@@ -286,6 +286,18 @@ export function assembleArenaV2(config: ArenaConfig): ArenaResult {
     }
   }
 
+  if (config.spawnPoint) {
+    const [cx, cz] = config.spawnPoint
+    const r = 4
+    for (let dz = -r; dz <= r; dz++) {
+      for (let dx = -r; dx <= r; dx++) {
+        if (dx * dx + dz * dz > r * r) continue
+        const idx = (cz + dz) * worldSize + (cx + dx)
+        if (idx >= 0 && idx < grid.length) grid[idx] = FLOOR
+      }
+    }
+  }
+
   let floorCount = 0
   let motifCells = 0
   for (let i = 0; i < grid.length; i++) {

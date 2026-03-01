@@ -87,42 +87,23 @@ Fragment shader options:
 
 ## Fog / haze
 
-Full-screen or ground-plane effects that add depth and atmosphere.
+Post-processing or UV-distortion effects that add depth and atmosphere.
 
 ### Styles
 
 | Style | Implementation | Performance | Use for |
 |-------|----------------|-------------|---------|
-| ground fog | transparent plane at y=0.3 with scrolling noise alpha | <0.5ms | swamps, horror, early morning |
+| depth fog | post-processing depth-based blend via `FogEffect` (`template/src/fog.ts`) | <0.5ms | any game needing atmospheric depth |
 | heat shimmer | post-processing UV distortion (see `patterns/post-processing.md` → noise displacement) | <1ms | desert, volcanic, hot zones |
 | volumetric light shafts | post-processing radial blur from light source (god rays) | <1.5ms | forests, cathedrals, dramatic |
 
-### Ground fog
+### Depth fog
 
-A large transparent plane hovering just above the ground. Fragment shader samples scrolling noise for patchy fog density:
-
-```glsl
-// Fragment shader for ground fog plane
-uniform float uTime;
-uniform vec3 uFogColor;
-uniform float uDensity;
-varying vec2 vWorldXZ;
-
-void main() {
-  vec2 uv = vWorldXZ * 0.05;
-  float n1 = noise(uv + vec2(uTime * 0.02, 0.0));
-  float n2 = noise(uv * 2.3 + vec2(0.0, uTime * 0.015));
-  float fog = (n1 * 0.6 + n2 * 0.4) * uDensity;
-  fog = smoothstep(0.2, 0.8, fog);
-  gl_FragColor = vec4(uFogColor, fog * 0.4);
-}
-```
-
-Place one large quad per chunk or a single arena-sized quad. Use `transparent: true` and `depthWrite: false`.
+A post-processing effect that reads the depth buffer and blends distant objects toward a two-color fog gradient. Uses `template/src/fog.ts` (`FogEffect`). Add to the `EffectComposer` alongside `GamePostFX` in SOP step 3.4. See `patterns/post-processing.md` → Depth fog for config and usage.
 
 ### Heat shimmer and light shafts
 
-These are post-processing effects. Wire them in step 3.5 (Post-processing) rather than 3.4, but choose them here for thematic consistency. See `patterns/post-processing.md`.
+These are post-processing effects. Wire them in step 3.4 (Post-processing) rather than 2.2b, but choose them here for thematic consistency. See `patterns/post-processing.md`.
 
 ## Performance budget
 
@@ -133,11 +114,11 @@ All dressing combined must stay under 2ms. Rough allocation:
 | Vegetation | <1ms | See `patterns/grass-vegetation.md` |
 | Atmosphere particles | <0.3ms | Keep count low, use instancing |
 | Ground scatter | <0.3ms | One draw call per chunk via instancing |
-| Fog/haze | <0.5ms | Single transparent plane, simple shader |
+| Fog/haze | <0.5ms | Post-process depth fog (part of postfx budget) |
 
 ## Integration with chunks
 
-Ground scatter and vegetation are per-chunk (built on activation, disposed on deactivation). Atmosphere particles are global (follow the player). Fog can be per-chunk or global depending on desired coverage.
+Ground scatter and vegetation are per-chunk (built on activation, disposed on deactivation). Atmosphere particles are global (follow the player). Fog is a global post-processing effect (not per-chunk).
 
 ## What NOT to do
 
@@ -145,4 +126,4 @@ Ground scatter and vegetation are per-chunk (built on activation, disposed on de
 - Don't place ground scatter on wall cells.
 - Don't make fog opaque enough to obscure enemies or pickups.
 - Don't exceed the 2ms combined budget. Cut density before adding complexity.
-- Don't use `transparent: true` on vegetation or ground scatter — use `alphaTest`. Only fog needs real transparency.
+- Don't use `transparent: true` on vegetation or ground scatter — use `alphaTest`.

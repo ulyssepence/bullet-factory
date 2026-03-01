@@ -16,6 +16,7 @@ interface Props {
   polygonOffset?: boolean
   polygonOffsetFactor?: number
   polygonOffsetUnits?: number
+  vertexColors?: boolean
 }
 
 const NOISE_GLSL = /* glsl */ `
@@ -523,7 +524,7 @@ const styleConfigs: Record<SurfaceStyle, {
 }
 
 function makeShader(style: SurfaceStyle) {
-  const cfg = styleConfigs[style]
+  const cfg = styleConfigs[style] ?? styleConfigs.rough
   return {
     uniforms: {
       baseColor: { value: new THREE.Color('#888888') },
@@ -552,16 +553,103 @@ function makeShader(style: SurfaceStyle) {
   }
 }
 
-export function GrayboxMaterial({ color, style, scale = 1.0, bumpStrength, side, polygonOffset, polygonOffsetFactor, polygonOffsetUnits }: Props) {
+export function createGrayboxMaterial(color: string, style: SurfaceStyle, opts: { scale?: number; side?: THREE.Side } = {}): THREE.MeshStandardMaterial {
+  const shader = makeShader(style)
+  const baseColor = new THREE.Color(color)
+  const sc = opts.scale ?? 1.0
+  const material = new THREE.MeshStandardMaterial({
+    color: baseColor,
+    roughness: shader.roughness,
+    metalness: shader.metalness,
+    ...(opts.side != null && { side: opts.side }),
+  })
+  material.onBeforeCompile = (s) => {
+    s.uniforms.baseColor = { value: baseColor }
+    s.uniforms.noiseScale = { value: shader.uniforms.noiseScale.value * sc }
+    s.uniforms.bumpStrength = { value: shader.uniforms.bumpStrength.value }
+    s.vertexShader = s.vertexShader.replace(
+      '#include <common>',
+      `#include <common>\n${shader.vertexPreamble}`,
+    )
+    s.vertexShader = s.vertexShader.replace(
+      '#include <begin_vertex>',
+      `#include <begin_vertex>\n${shader.vertexMain}`,
+    )
+    s.fragmentShader = s.fragmentShader.replace(
+      '#include <common>',
+      `#include <common>\n${shader.fragmentPreamble}`,
+    )
+    s.fragmentShader = s.fragmentShader.replace(
+      '#include <normal_fragment_maps>',
+      `#include <normal_fragment_maps>
+      {
+        normal = normalize((viewMatrix * vec4(vWorldNormal, 0.0)).xyz);
+        vec3 blend = abs(vWorldNormal);
+        blend = pow(blend, vec3(4.0));
+        blend /= (blend.x + blend.y + blend.z);
+        vec3 triUV = vWorldPos.yzx * blend.x + vWorldPos.xzy * blend.y + vWorldPos.xyz * blend.z;
+        vec3 surfaceColor = baseColor;
+        vec3 bumpGrad = vec3(0.0);
+        float roughnessMod = 0.0;
+        float metalnessMod = 0.0;
+        ${shader.fragmentCode}
+        diffuseColor.rgb = surfaceColor;
+        float gradLen = length(bumpGrad);
+        if (gradLen > 1.0) bumpGrad /= gradLen;
+        vec3 surfTangent = normalize(cross(vWorldNormal, vec3(0.0, 1.0, 0.001)));
+        vec3 surfBitangent = cross(vWorldNormal, surfTangent);
+        normal = normalize(normal
+          - bumpStrength * (bumpGrad.x * surfTangent + bumpGrad.y * vWorldNormal + bumpGrad.z * surfBitangent));
+      }`,
+    )
+    s.fragmentShader = s.fragmentShader.replace(
+      '#include <roughnessmap_fragment>',
+      `#include <roughnessmap_fragment>
+      {
+        vec3 blend = abs(vWorldNormal);
+        blend = pow(blend, vec3(4.0));
+        blend /= (blend.x + blend.y + blend.z);
+        vec3 triUV = vWorldPos.yzx * blend.x + vWorldPos.xzy * blend.y + vWorldPos.xyz * blend.z;
+        vec3 surfaceColor;
+        vec3 bumpGrad;
+        float roughnessMod = 0.0;
+        float metalnessMod = 0.0;
+        ${shader.fragmentCode}
+        roughnessFactor = clamp(roughnessFactor + roughnessMod, 0.0, 1.0);
+      }`,
+    )
+    s.fragmentShader = s.fragmentShader.replace(
+      '#include <metalnessmap_fragment>',
+      `#include <metalnessmap_fragment>
+      {
+        vec3 blend = abs(vWorldNormal);
+        blend = pow(blend, vec3(4.0));
+        blend /= (blend.x + blend.y + blend.z);
+        vec3 triUV = vWorldPos.yzx * blend.x + vWorldPos.xzy * blend.y + vWorldPos.xyz * blend.z;
+        vec3 surfaceColor;
+        vec3 bumpGrad;
+        float roughnessMod = 0.0;
+        float metalnessMod = 0.0;
+        ${shader.fragmentCode}
+        metalnessFactor = clamp(metalnessFactor + metalnessMod, 0.0, 1.0);
+      }`,
+    )
+  }
+  material.customProgramCacheKey = () => `graybox-${style}`
+  return material
+}
+
+export function GrayboxMaterial({ color, style, scale = 1.0, bumpStrength, side, polygonOffset, polygonOffsetFactor, polygonOffsetUnits, vertexColors = false }: Props) {
   const mat = useMemo(() => {
     const shader = makeShader(style)
     const baseColor = new THREE.Color(color)
     const bStr = bumpStrength ?? shader.uniforms.bumpStrength.value
 
     const material = new THREE.MeshStandardMaterial({
-      color: baseColor,
+      color: vertexColors ? 0xffffff : baseColor,
       roughness: shader.roughness,
       metalness: shader.metalness,
+      vertexColors,
       ...(side != null && { side }),
       ...(polygonOffset != null && { polygonOffset }),
       ...(polygonOffsetFactor != null && { polygonOffsetFactor }),
@@ -613,12 +701,12 @@ export function GrayboxMaterial({ color, style, scale = 1.0, bumpStrength, side,
           vec3 triUV = uvX * blend.x + uvY * blend.y + uvZ * blend.z;
 
           // Style-specific noise
-          vec3 surfaceColor = baseColor;
+          vec3 surfaceColor = ${vertexColors ? 'diffuseColor.rgb' : 'baseColor'};
           vec3 bumpGrad = vec3(0.0);
           float roughnessMod = 0.0;
           float metalnessMod = 0.0;
 
-          ${shader.fragmentCode}
+          ${vertexColors ? shader.fragmentCode.replace(/baseColor/g, 'diffuseColor.rgb') : shader.fragmentCode}
 
           // Apply color
           diffuseColor.rgb = surfaceColor;
@@ -677,9 +765,9 @@ export function GrayboxMaterial({ color, style, scale = 1.0, bumpStrength, side,
       )
     }
 
-    material.customProgramCacheKey = () => `graybox-${style}`
+    material.customProgramCacheKey = () => `graybox-${style}${vertexColors ? '-vc' : ''}`
     return material
-  }, [color, style, scale, bumpStrength])
+  }, [color, style, scale, bumpStrength, vertexColors])
 
   return <primitive object={mat} attach="material" />
 }

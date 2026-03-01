@@ -2,11 +2,12 @@ import React, { useRef } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Canvas, useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { gameStore, tick } from './store'
-import * as input from './input'
-import * as audio from './audio'
-import { GrayboxMaterial } from './graybox-material'
-import * as particles from './particles'
+import { gameStore, tick } from '../../../template/src/store'
+import * as input from '../../../template/src/input'
+import * as audio from '../../../template/src/audio'
+import { GrayboxMaterial } from '../../../template/src/graybox-material'
+import * as particles from '../../../template/src/particles'
+import type { SurfaceStyle } from '../../../template/src/graybox-material'
 
 function Player() {
   const ref = useRef<THREE.Mesh>(null)
@@ -41,31 +42,25 @@ function GameLoop() {
   return null
 }
 
-import type { SurfaceStyle } from './graybox-material'
-
 const allStyles: { style: SurfaceStyle; color: string }[] = [
-  // Row 1: original 6
   { style: 'rough', color: '#8b7d6b' },
   { style: 'smooth', color: '#4488ff' },
   { style: 'organic', color: '#4a6741' },
   { style: 'crystalline', color: '#9b59b6' },
   { style: 'metallic', color: '#95a5a6' },
   { style: 'worn', color: '#c0392b' },
-  // Row 2: natural
   { style: 'wood', color: '#8B6914' },
   { style: 'plank', color: '#A0722A' },
   { style: 'bark', color: '#5C4033' },
   { style: 'grass', color: '#4a7c3f' },
   { style: 'dirt', color: '#8B6F47' },
   { style: 'sand', color: '#C2B280' },
-  // Row 3: stone & mineral
   { style: 'marble', color: '#D4CFC9' },
   { style: 'cobblestone', color: '#808080' },
   { style: 'slate', color: '#6A6A6A' },
   { style: 'gravel', color: '#9E9E9E' },
   { style: 'ice', color: '#A5D8F0' },
   { style: 'obsidian', color: '#1A1A2E' },
-  // Row 4: built
   { style: 'brick', color: '#A0522D' },
   { style: 'tile', color: '#E8E4D9' },
   { style: 'carpet', color: '#8B2252' },
@@ -90,10 +85,22 @@ function StyleShowcase() {
   )
 }
 
+const zoomRef = { value: 1 }
+
 function FollowCamera() {
+  React.useEffect(() => {
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      zoomRef.value = Math.max(0.3, Math.min(3, zoomRef.value * (1 + e.deltaY * 0.001)))
+    }
+    window.addEventListener('wheel', onWheel, { passive: false })
+    return () => window.removeEventListener('wheel', onWheel)
+  }, [])
+
   useFrame(({ camera }) => {
     const [px, py, pz] = gameStore.getState().player.position
-    camera.position.set(px, py + 12, pz + 6)
+    const z = zoomRef.value
+    camera.position.set(px, py + 12 * z, pz + 6 * z)
     camera.lookAt(px, py, pz - 5)
   })
   return null
@@ -101,7 +108,7 @@ function FollowCamera() {
 
 function App() {
   React.useEffect(() => {
-    audio.preload(audio.defaultManifest)
+    audio.player.preload(audio.defaultManifest)
   }, [])
 
   return (

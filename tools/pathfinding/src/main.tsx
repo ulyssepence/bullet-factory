@@ -6,9 +6,9 @@ import {
   gameStore, tick, spawnEnemies, removeEnemies,
   navState, levelGrid, hash, WORLD_SIZE, CELL_SIZE,
 } from './store'
-import * as input from './input'
-import * as grid from './systems/grid'
-import * as profile from './profile'
+import * as input from '../../../template/src/input'
+import * as grid from '../../../template/src/systems/grid'
+import * as profile from '../../../template/src/profile'
 
 const _obj = new THREE.Object3D()
 

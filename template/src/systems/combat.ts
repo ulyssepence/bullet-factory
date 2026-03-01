@@ -182,7 +182,7 @@ export function tickProjectiles(
 function spawnPickup(
   state: CombatTickState,
   pos: [number, number, number],
-  type: 'xp' | 'health',
+  type: t.PickupState['type'],
   value: number,
   genId: () => string,
 ): void {

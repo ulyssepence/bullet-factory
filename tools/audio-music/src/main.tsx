@@ -3,41 +3,48 @@ import { createRoot } from 'react-dom/client'
 import * as audio from '../../../template/src/audio'
 
 const tracks = {
-  'morning-rain': 'audio/music/morning-rain.mp3',
-  'four-loop': 'audio/music/four-loop.mp3',
-  'tempo': 'audio/music/tempo.mp3',
+  'gameplay': 'audio/music/gameplay.ogg',
+  'boss-fight': 'audio/music/boss-fight.ogg',
+  'death': 'audio/music/death.ogg',
+  'victory': 'audio/music/victory.ogg',
 }
 
 const trackLabels: Record<string, string> = {
-  'morning-rain': 'Morning Rain (lofi)',
-  'four-loop': 'Four Loop (puzzle)',
-  'tempo': 'Tempo (upbeat)',
+  'gameplay': 'Gameplay',
+  'boss-fight': 'Boss Fight',
+  'death': 'Death',
+  'victory': 'Victory',
 }
 
-function StatusDot({ active }: { active: boolean }) {
-  return (
-    <span style={{
-      display: 'inline-block',
-      width: 10, height: 10, borderRadius: '50%',
-      background: active ? '#4f4' : '#444',
-      marginRight: 8,
-      boxShadow: active ? '0 0 6px #4f4' : 'none',
-      transition: 'all 0.3s',
-    }} />
-  )
+const TRACK_COLORS: Record<string, string> = {
+  'gameplay': '#4488ff',
+  'boss-fight': '#ff4444',
+  'death': '#aa44ff',
+  'victory': '#ffcc00',
 }
 
 function App() {
   const [currentTrack, setCurrentTrack] = useState<string | null>(null)
+  const [gains, setGains] = useState<Record<string, number>>({})
   const [fadeDuration, setFadeDuration] = useState(3)
   const [volume, setVolume] = useState(0.7)
   const [ready, setReady] = useState(false)
   const [loading, setLoading] = useState(false)
+  const gainNodes = useRef<Map<string, GainNode>>(new Map())
 
   useEffect(() => {
     const id = window.setInterval(() => {
-      setCurrentTrack(audio.player.currentTrack)
-    }, 100)
+      const cur = (audio.player as any).current as { name: string; gain: GainNode } | null
+      if (cur) gainNodes.current.set(cur.name, cur.gain)
+      setCurrentTrack(cur?.name ?? null)
+      const g: Record<string, number> = {}
+      for (const [name, node] of gainNodes.current) {
+        const v = node.gain.value
+        if (v > 0.001) g[name] = v
+        else if (name !== cur?.name) gainNodes.current.delete(name)
+      }
+      setGains(g)
+    }, 50)
     return () => clearInterval(id)
   }, [])
 
@@ -80,12 +87,27 @@ function App() {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {Object.keys(tracks).map(name => (
-              <button key={name} onClick={() => play(name)} style={btnStyle(currentTrack === name ? '#336633' : '#444')}>
-                <StatusDot active={currentTrack === name} />
-                {trackLabels[name]}
-              </button>
-            ))}
+            {Object.keys(tracks).map(name => {
+              const g = gains[name] ?? 0
+              const fill = Math.min(g / volume, 1)
+              const color = TRACK_COLORS[name] ?? '#4f4'
+              return (
+                <button key={name} onClick={() => play(name)} style={{
+                  ...btnStyle('#333'),
+                  position: 'relative',
+                  overflow: 'hidden',
+                }}>
+                  <div style={{
+                    position: 'absolute', left: 0, top: 0, bottom: 0,
+                    width: `${fill * 100}%`,
+                    background: color,
+                    opacity: 0.35,
+                    transition: 'width 0.08s linear',
+                  }} />
+                  <span style={{ position: 'relative', zIndex: 1 }}>{trackLabels[name]}</span>
+                </button>
+              )
+            })}
             <button onClick={stop} style={btnStyle('#663333')}>Stop</button>
           </div>
 

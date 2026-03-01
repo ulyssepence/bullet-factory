@@ -16,6 +16,7 @@ export interface PresetParams {
   sizeMax: number
   sizeScale: number
   opacity: number
+  alphaCap: number
   loop: boolean
   spread: [number, number, number]
   followCamera?: boolean
@@ -27,35 +28,35 @@ export const PRESETS: Record<string, PresetParams> = {
     velocity: [0, 3, 0], velocitySpread: [4, 2, 4],
     gravity: -6, lifetimeMin: 0.2, lifetimeMax: 0.8,
     sizeMin: 0.04, sizeMax: 0.12, sizeScale: 1,
-    opacity: 1, loop: false, spread: [0, 0, 0],
+    opacity: 1, alphaCap: 0.4, loop: false, spread: [0, 0, 0],
   },
   radial: {
     count: 60, poolSize: 16,
     velocity: [0, 1, 0], velocitySpread: [3, 0.5, 3],
     gravity: -1, lifetimeMin: 0.5, lifetimeMax: 1.0,
     sizeMin: 0.04, sizeMax: 0.1, sizeScale: 1,
-    opacity: 0.9, loop: false, spread: [0, 0, 0],
+    opacity: 0.9, alphaCap: 0.4, loop: false, spread: [0, 0, 0],
   },
   aura: {
     count: 40, poolSize: 16,
     velocity: [0, 0.8, 0], velocitySpread: [0.3, 0.3, 0.3],
     gravity: 0, lifetimeMin: 0.8, lifetimeMax: 1.5,
     sizeMin: 0.05, sizeMax: 0.15, sizeScale: 1,
-    opacity: 0.6, loop: true, spread: [0.5, 0.2, 0.5],
+    opacity: 0.6, alphaCap: 1.0, loop: true, spread: [0.5, 0.2, 0.5],
   },
   sparkle: {
     count: 15, poolSize: 24,
     velocity: [0, 0.3, 0], velocitySpread: [0.2, 0.2, 0.2],
     gravity: 0, lifetimeMin: 0.6, lifetimeMax: 1.2,
     sizeMin: 0.03, sizeMax: 0.08, sizeScale: 1,
-    opacity: 0.9, loop: true, spread: [0.6, 0.4, 0.6],
+    opacity: 0.9, alphaCap: 1.0, loop: true, spread: [0.6, 0.4, 0.6],
   },
   rain: {
     count: 300, poolSize: 2,
     velocity: [0, -6, 0], velocitySpread: [0.3, 0.5, 0.3],
     gravity: 0, lifetimeMin: 1.0, lifetimeMax: 2.0,
     sizeMin: 0.1, sizeMax: 0.2, sizeScale: 1,
-    opacity: 0.8, loop: true, spread: [12, 8, 12],
+    opacity: 0.8, alphaCap: 1.0, loop: true, spread: [12, 8, 12],
     followCamera: true,
   },
 }
@@ -136,6 +137,7 @@ const fragmentShader = /* glsl */ `
 uniform vec3 uColor;
 uniform float uLoop;
 uniform float uOpacity;
+uniform float uAlphaCap;
 
 varying float vAlpha;
 varying float vSeed;
@@ -154,7 +156,7 @@ void main() {
     sparkle = 0.5 + 0.5 * sin(phase);
   }
 
-  float alpha = vAlpha * circle * sparkle;
+  float alpha = min(vAlpha * circle * sparkle, uAlphaCap);
   if (alpha < 0.001) discard;
 
   gl_FragColor = vec4(uColor, alpha);
@@ -235,6 +237,7 @@ function createSlot(presetName: string): PoolSlot {
       uSizeScale: { value: 1 },
       uColor: { value: new THREE.Color() },
       uOpacity: { value: 1 },
+      uAlphaCap: { value: 1 },
       uLoop: { value: 0 },
     },
     transparent: true,
@@ -275,6 +278,7 @@ function applyPreset(slot: PoolSlot, presetName: string, origin: [number, number
   u.uSizeScale.value = p.sizeScale
   u.uColor.value.set(color)
   u.uOpacity.value = p.opacity
+  u.uAlphaCap.value = p.alphaCap
   u.uLoop.value = p.loop ? 1 : 0
 
   slot.inUse = true

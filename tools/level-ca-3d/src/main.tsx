@@ -1,9 +1,30 @@
-import React, { useState, useCallback, useEffect, useMemo } from 'react'
+import React, { useState, useCallback, useEffect, useMemo, ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import { assembleArenaV2, DEMO_CONFIG, ArenaResult, ArenaConfig, makeDebugArena } from '../../../template/src/level/generate'
 import { TerrainScene } from './scene'
+
+function Panel({ title, children, style }: { title: string; children: ReactNode; style?: React.CSSProperties }) {
+  const [open, setOpen] = useState(true)
+  return (
+    <div style={{
+      position: 'fixed',
+      background: 'rgba(0,0,0,0.8)', color: '#eee', padding: open ? 12 : '6px 12px',
+      borderRadius: 6, fontFamily: 'monospace', fontSize: 13, zIndex: 10,
+      ...style,
+    }}>
+      <div
+        onClick={() => setOpen(o => !o)}
+        style={{ cursor: 'pointer', userSelect: 'none', display: 'flex', alignItems: 'center', gap: 6 }}
+      >
+        <span style={{ fontSize: 10 }}>{open ? '▼' : '▶'}</span>
+        <span style={{ fontWeight: 'bold', fontSize: 12 }}>{title}</span>
+      </div>
+      {open && <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>{children}</div>}
+    </div>
+  )
+}
 
 function App() {
   const [seed, setSeed] = useState(42)
@@ -53,13 +74,7 @@ function App() {
         {result && <TerrainScene result={result} seed={seed} showGrid={showGrid} zones={currentZones} smoothingOverride={smoothingPasses} />}
       </Canvas>
 
-      <div style={{
-        position: 'fixed', top: 12, left: 12,
-        background: 'rgba(0,0,0,0.8)', color: '#eee', padding: 12,
-        borderRadius: 6, fontFamily: 'monospace', fontSize: 13,
-        display: 'flex', flexDirection: 'column', gap: 8,
-        zIndex: 10,
-      }}>
+      <Panel title="Controls" style={{ top: 12, left: 12 }}>
         <label>
           Seed{' '}
           <input
@@ -103,21 +118,18 @@ function App() {
           Generate
         </button>
         <div style={{ fontSize: 11, color: '#999' }}>Space = next seed</div>
-      </div>
+      </Panel>
 
       {result?.stats && (
-        <div style={{
-          position: 'fixed', top: 12, right: 12,
-          background: 'rgba(0,0,0,0.8)', color: '#ccc', padding: 12,
-          borderRadius: 6, fontFamily: 'monospace', fontSize: 12,
-          lineHeight: 1.6, zIndex: 10,
-        }}>
-          <div>World: {result.stats.worldSize}x{result.stats.worldSize}</div>
-          <div>Density: {(result.stats.density * 100).toFixed(1)}%</div>
-          <div>Connected: {result.stats.connected ? '\u2713' : '\u2717'}</div>
-          <div>Motif cells: {result.stats.motifCells}</div>
-          <div>Chunks: {result.stats.chunkCount}</div>
-        </div>
+        <Panel title="Stats" style={{ top: 12, right: 12 }}>
+          <div style={{ fontSize: 12, color: '#ccc', lineHeight: 1.6 }}>
+            <div>World: {result.stats.worldSize}x{result.stats.worldSize}</div>
+            <div>Density: {(result.stats.density * 100).toFixed(1)}%</div>
+            <div>Connected: {result.stats.connected ? '\u2713' : '\u2717'}</div>
+            <div>Motif cells: {result.stats.motifCells}</div>
+            <div>Chunks: {result.stats.chunkCount}</div>
+          </div>
+        </Panel>
       )}
     </>
   )

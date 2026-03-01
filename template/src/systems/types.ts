@@ -34,7 +34,7 @@ export interface ProjectileState {
 
 export interface PickupState {
   id: EntityId
-  type: 'xp' | 'health'
+  type: 'xp' | 'health' | 'rosary' | 'magnet'
   position: [number, number, number]
   value: number
   age: number

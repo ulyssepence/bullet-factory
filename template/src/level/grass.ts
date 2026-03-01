@@ -9,6 +9,10 @@ export type ZoneGrassConfig = {
   baseColorShift: number
   tipColorShift: number
   windStrength: number
+  vertexShader?: string
+  fragmentShader?: string
+  extraUniforms?: Record<string, { value: any }>
+  materialConfig?: Partial<{ blending: number; depthWrite: boolean; transparent: boolean; alphaTest: number }>
 }
 
 export type GrassBuildOptions = {
@@ -27,7 +31,7 @@ export type GrassResult = {
   update: (dt: number) => void
 }
 
-const VERTEX_SHADER = /* glsl */ `
+export const VERTEX_SHADER = /* glsl */ `
   attribute vec3 aOffset;
   attribute float aRotation;
   attribute float aScale;
@@ -78,12 +82,13 @@ const VERTEX_SHADER = /* glsl */ `
   }
 `
 
-const FRAGMENT_SHADER = /* glsl */ `
+export const FRAGMENT_SHADER = /* glsl */ `
   varying vec2 vUv;
   varying float vColorVar;
 
   uniform vec3 uBaseColor;
   uniform vec3 uTipColor;
+  uniform float uColorVariation;
   uniform float uBladeWidth;
 
   void main() {
@@ -115,18 +120,19 @@ const FRAGMENT_SHADER = /* glsl */ `
       fract(sin(vColorVar * 269.5) * 18732.3),
       fract(sin(vColorVar * 419.2) * 95124.7)
     );
-    varTint = (varTint - 0.5) * 0.15;
+    varTint = (varTint - 0.5) * uColorVariation * 0.3;
 
     vec3 base = uBaseColor + varTint;
     vec3 tip = uTipColor + varTint;
     vec3 color = mix(base, tip, normalizedY);
 
+    float edgeSoft = smoothstep(halfWidth, halfWidth * 0.5, abs(localX));
     float ao = smoothstep(0.0, 0.15, y);
-    gl_FragColor = vec4(color * (0.5 + ao * 0.5), 1.0);
+    gl_FragColor = vec4(color * (0.5 + ao * 0.5), edgeSoft);
   }
 `
 
-function createStarGeometry(): THREE.BufferGeometry {
+export function createStarGeometry(): THREE.BufferGeometry {
   const positions: number[] = []
   const uvs: number[] = []
   const indices: number[] = []
@@ -222,23 +228,35 @@ export function build(opts: GrassBuildOptions): GrassResult {
     geo.setAttribute('aColorVar', new THREE.InstancedBufferAttribute(new Float32Array(scattered.colorVars), 1))
     geo.instanceCount = scattered.count
 
+    const extras: Record<string, { value: any }> = {}
+    if (cfg.extraUniforms) {
+      for (const [k, v] of Object.entries(cfg.extraUniforms)) {
+        extras[k] = { value: v.value }
+      }
+    }
+    const uniforms: Record<string, { value: any }> = {
+      ...extras,
+      uTime: { value: 0 },
+      uBaseColor: { value: baseColor },
+      uTipColor: { value: tipColor },
+      uColorVariation: { value: 0.5 },
+      uBladeHeight: { value: cfg.bladeHeight },
+      uBladeHeightVar: { value: cfg.bladeHeightVar },
+      uBladeWidth: { value: cfg.bladeWidth },
+      uWindSpeed: { value: windSpeed },
+      uWindStrength: { value: cfg.windStrength },
+      uWindDirection: { value: windDir },
+    }
+    const mc = cfg.materialConfig
     const mat = new THREE.ShaderMaterial({
-      vertexShader: VERTEX_SHADER,
-      fragmentShader: FRAGMENT_SHADER,
-      uniforms: {
-        uTime: { value: 0 },
-        uBaseColor: { value: baseColor },
-        uTipColor: { value: tipColor },
-        uBladeHeight: { value: cfg.bladeHeight },
-        uBladeHeightVar: { value: cfg.bladeHeightVar },
-        uBladeWidth: { value: cfg.bladeWidth },
-        uWindSpeed: { value: windSpeed },
-        uWindStrength: { value: cfg.windStrength },
-        uWindDirection: { value: windDir },
-      },
+      vertexShader: cfg.vertexShader ?? VERTEX_SHADER,
+      fragmentShader: cfg.fragmentShader ?? FRAGMENT_SHADER,
+      uniforms,
       side: THREE.DoubleSide,
-      alphaTest: 0.5,
-      depthWrite: true,
+      alphaTest: mc?.alphaTest ?? 0.1,
+      depthWrite: mc?.depthWrite ?? true,
+      transparent: mc?.transparent ?? true,
+      blending: mc?.blending ?? THREE.NormalBlending,
     })
 
     materials.push(mat)

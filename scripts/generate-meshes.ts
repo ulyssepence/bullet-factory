@@ -46,6 +46,7 @@ interface MeshEntry {
   prompt: string
   targetPolycount?: number
   role?: string
+  animationMode?: "humanoid" | "procedural" | "static"
 }
 
 const POLY_BUDGET = {
@@ -89,31 +90,44 @@ async function generateAndRig(entry: MeshEntry, outDir: string) {
   }
 
   console.log(`[2/3] Rigging...`)
-  const rigResult = await api("POST", "/v1/rigging", {
-    input_task_id: genId,
-    height_meters: 1.7,
-  })
-  const rigId = rigResult.result
-  const rigTask = await poll(`/v1/rigging/${rigId}`)
-  console.log(`  Done (${((rigTask.finished_at - rigTask.started_at) / 1000).toFixed(0)}s)`)
+  try {
+    const rigResult = await api("POST", "/v1/rigging", {
+      input_task_id: genId,
+      height_meters: 1.7,
+    })
+    const rigId = rigResult.result
+    const rigTask = await poll(`/v1/rigging/${rigId}`)
+    console.log(`  Done (${((rigTask.finished_at - rigTask.started_at) / 1000).toFixed(0)}s)`)
 
-  console.log(`[3/3] Downloading animations...`)
-  const assets = rigTask.result
+    console.log(`[3/3] Downloading animations...`)
+    const assets = rigTask.result
 
-  const riggedSize = await download(assets.rigged_character_glb_url, path.join(outDir, `${name}-rigged.glb`))
-  console.log(`  Rigged: ${(riggedSize / 1024).toFixed(0)} KB`)
+    const riggedSize = await download(assets.rigged_character_glb_url, path.join(outDir, `${name}-rigged.glb`))
+    console.log(`  Rigged: ${(riggedSize / 1024).toFixed(0)} KB`)
 
-  if (assets.basic_animations?.walking_glb_url) {
-    const s = await download(assets.basic_animations.walking_glb_url, path.join(outDir, `${name}-walk.glb`))
-    console.log(`  Walk: ${(s / 1024).toFixed(0)} KB`)
+    if (assets.basic_animations?.walking_glb_url) {
+      const s = await download(assets.basic_animations.walking_glb_url, path.join(outDir, `${name}-walk.glb`))
+      console.log(`  Walk: ${(s / 1024).toFixed(0)} KB`)
+    }
+
+    if (assets.basic_animations?.running_glb_url) {
+      const s = await download(assets.basic_animations.running_glb_url, path.join(outDir, `${name}-run.glb`))
+      console.log(`  Run: ${(s / 1024).toFixed(0)} KB`)
+    }
+
+    return { name, genId, rigId, type: "character" as const }
+  } catch (e: any) {
+    console.error(`  Rigging failed: ${e.message}`)
+    const rejectDir = path.join(outDir, "rejected")
+    fs.mkdirSync(rejectDir, { recursive: true })
+    const src = meshPath
+    const dest = path.join(rejectDir, `${name}.glb`)
+    fs.renameSync(src, dest)
+    const previewSrc = path.join(outDir, `${name}-preview.png`)
+    if (fs.existsSync(previewSrc)) fs.renameSync(previewSrc, path.join(rejectDir, `${name}-preview.png`))
+    console.log(`  Moved to rejected/: ${name}.glb`)
+    return { name, genId, rigId: null, type: "character" as const, rejected: true }
   }
-
-  if (assets.basic_animations?.running_glb_url) {
-    const s = await download(assets.basic_animations.running_glb_url, path.join(outDir, `${name}-run.glb`))
-    console.log(`  Run: ${(s / 1024).toFixed(0)} KB`)
-  }
-
-  return { name, genId, rigId, type: "character" as const }
 }
 
 async function generateStatic(entry: MeshEntry, outDir: string) {
@@ -208,9 +222,10 @@ async function main() {
   const results = []
 
   for (const entry of characters) {
-    if (noRig) {
+    const mode = entry.animationMode ?? "humanoid"
+    if (noRig || mode !== "humanoid") {
       const result = await generateStatic(entry, outDir)
-      results.push({ ...result, type: "character" as const })
+      results.push({ ...result, type: "character" as const, animationMode: mode })
     } else {
       const result = await generateAndRig(entry, outDir)
       results.push(result)

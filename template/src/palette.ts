@@ -1,4 +1,4 @@
-type Vec3 = [number, number, number]
+export type Vec3 = [number, number, number]
 
 function hash(x: number, y: number, z: number): number {
   return ((Math.sin(x * 12.9898 + y * 78.233 + z * 45.164) * 43758.5453) % 1 + 1) % 1
@@ -18,10 +18,10 @@ function luminance([r, g, b]: Vec3): number {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b
 }
 
-type OKLab = { L: number; a: number; b: number }
-type OKLCh = { L: number; C: number; h: number }
+export type OKLab = { L: number; a: number; b: number }
+export type OKLCh = { L: number; C: number; h: number }
 
-function srgbToOklab([r, g, b]: Vec3): OKLab {
+export function srgbToOklab([r, g, b]: Vec3): OKLab {
   const lin = (v: number) => v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4
   const lr = lin(r), lg = lin(g), lb = lin(b)
   const l = Math.cbrt(0.4122214708 * lr + 0.5363325363 * lg + 0.0514459929 * lb)
@@ -34,11 +34,11 @@ function srgbToOklab([r, g, b]: Vec3): OKLab {
   }
 }
 
-function oklabDistance(a: OKLab, b: OKLab): number {
+export function oklabDistance(a: OKLab, b: OKLab): number {
   return Math.sqrt((a.L - b.L) ** 2 + (a.a - b.a) ** 2 + (a.b - b.b) ** 2)
 }
 
-function oklabToOklch(lab: OKLab): OKLCh {
+export function oklabToOklch(lab: OKLab): OKLCh {
   const C = Math.sqrt(lab.a ** 2 + lab.b ** 2)
   const h = ((Math.atan2(lab.b, lab.a) * 180 / Math.PI) + 360) % 360
   return { L: lab.L, C, h }
@@ -55,7 +55,7 @@ function contrastRatio(a: Vec3, b: Vec3): number {
   return la > lb ? la / lb : lb / la
 }
 
-function toHex([r, g, b]: Vec3): string {
+export function toHex([r, g, b]: Vec3): string {
   const h = (v: number) => Math.round(v * 255).toString(16).padStart(2, '0')
   return `#${h(r)}${h(g)}${h(b)}`
 }
@@ -128,7 +128,7 @@ export function generateValid(startSeed = 0, enemyCount = 3, maxAttempts = 5000)
   return null
 }
 
-function hexToVec3(hex: string): Vec3 {
+export function hexToVec3(hex: string): Vec3 {
   const n = parseInt(hex.slice(1), 16)
   return [(n >> 16) / 255, ((n >> 8) & 0xff) / 255, (n & 0xff) / 255]
 }

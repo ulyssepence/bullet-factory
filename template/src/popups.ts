@@ -1,6 +1,7 @@
 import React, { useMemo, useEffect } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
+import * as clock from './clock'
 
 // --- Curves ---
 
@@ -69,7 +70,7 @@ interface PopupSlot {
   texture: THREE.CanvasTexture
   active: boolean
   curve: CurveName
-  startTime: number
+  vizElapsed: number
   originY: number
   aspect: number
   baseH: number
@@ -77,11 +78,6 @@ interface PopupSlot {
 
 let slots: PopupSlot[] = []
 let scene: THREE.Scene | null = null
-let clock: THREE.Clock | null = null
-
-function getTime(): number {
-  return clock ? clock.getElapsedTime() : 0
-}
 
 function createSlot(): PopupSlot {
   const canvas = document.createElement('canvas')
@@ -107,7 +103,7 @@ function createSlot(): PopupSlot {
 
   return {
     sprite, material, canvas, ctx, texture,
-    active: false, curve: 'rise-fade', startTime: 0, originY: 0, aspect: 1, baseH: 0.5,
+    active: false, curve: 'rise-fade', vizElapsed: 0, originY: 0, aspect: 1, baseH: 0.5,
   }
 }
 
@@ -153,6 +149,7 @@ interface EmitOpts {
   icon?: string
   color?: string
   fontSize?: number
+  size?: number
 }
 
 export function emit(curve: CurveName, opts: EmitOpts) {
@@ -170,36 +167,35 @@ export function emit(curve: CurveName, opts: EmitOpts) {
   free.originY = opts.at[1]
   free.active = true
   free.curve = curve
-  free.startTime = getTime()
+  free.vizElapsed = 0
   free.sprite.visible = true
   free.material.opacity = 1
-  free.baseH = opts.icon ? 0.8 : 0.5
+  free.baseH = (opts.icon ? 0.8 : 0.5) * (opts.size ?? 1)
   free.sprite.scale.set(free.aspect * free.baseH, free.baseH, 1)
 }
 
 // --- React component ---
 
 export function PopupPool() {
-  const { scene: s, clock: c } = useThree()
+  const { scene: s } = useThree()
 
   useMemo(() => {
     scene = s
-    clock = c
     slots = []
     for (let i = 0; i < POOL_SIZE; i++) {
       const slot = createSlot()
       s.add(slot.sprite)
       slots.push(slot)
     }
-  }, [s, c])
+  }, [s])
 
   useFrame(() => {
-    const now = getTime()
+    const { vizDt } = clock.getState()
     for (const slot of slots) {
       if (!slot.active) continue
+      slot.vizElapsed += vizDt
       const curve = CURVES[slot.curve]
-      const elapsed = now - slot.startTime
-      const t = Math.min(elapsed / curve.lifetime, 1)
+      const t = Math.min(slot.vizElapsed / curve.lifetime, 1)
 
       if (t >= 1) {
         slot.active = false
@@ -210,7 +206,7 @@ export function PopupPool() {
       const sc = curve.scale(t)
       slot.sprite.scale.set(slot.aspect * slot.baseH * sc, slot.baseH * sc, 1)
       slot.material.opacity = curve.opacity(t)
-      slot.sprite.position.y = slot.originY + elapsed * curve.riseSpeed
+      slot.sprite.position.y = slot.originY + slot.vizElapsed * curve.riseSpeed
     }
   })
 
@@ -223,7 +219,6 @@ export function PopupPool() {
       }
       slots = []
       scene = null
-      clock = null
     }
   }, [])
 

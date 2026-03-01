@@ -27,15 +27,22 @@ export class Player {
 
   play(name: string, volume = 1) {
     const ac = this.getContext()
-    const buf = this.buffers[name]
+
+    const baseName = name.replace(/_\d+$/, '')
+    const variants = Object.keys(this.buffers).filter(k => k === baseName || k.match(new RegExp(`^${baseName}_\\d+$`)))
+    const picked = variants.length > 0 ? variants[Math.floor(Math.random() * variants.length)] : name
+
+    const buf = this.buffers[picked]
     if (!buf) return
     const now = ac.currentTime
-    if (now - (this.lastPlayed[name] ?? 0) < 0.05) return
-    this.lastPlayed[name] = now
+    if (now - (this.lastPlayed[baseName] ?? 0) < 0.05) return
+    this.lastPlayed[baseName] = now
     const src = ac.createBufferSource()
     src.buffer = buf
+    src.playbackRate.value = 0.9 + Math.random() * 0.2
     const gain = ac.createGain()
-    gain.gain.value = volume * this.sfxVolume
+    const dbVariation = (Math.random() * 4 - 2)
+    gain.gain.value = volume * this.sfxVolume * Math.pow(10, dbVariation / 20)
     src.connect(gain).connect(ac.destination)
     src.start()
   }

@@ -1,12 +1,12 @@
 import { createStore } from 'zustand/vanilla'
 import type { GameState } from './types'
-import type { EnemyState } from './systems/types'
-import * as grid from './systems/grid'
-import * as nav from './systems/navigation'
-import * as spatial from './systems/spatial'
-import * as enemies from './systems/enemies'
-import { generateCA, WALL, FLOOR } from './level/ca'
-import * as profile from './profile'
+import type { EnemyState } from '../../../template/src/systems/types'
+import * as grid from '../../../template/src/systems/grid'
+import * as nav from '../../../template/src/systems/navigation'
+import * as spatial from '../../../template/src/systems/spatial'
+import * as enemies from '../../../template/src/systems/enemies'
+import { generateCA, WALL, FLOOR } from '../../../template/src/level/ca'
+import * as profile from '../../../template/src/profile'
 
 export const WORLD_SIZE = 64
 export const CELL_SIZE = 2

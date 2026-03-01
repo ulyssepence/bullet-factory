@@ -1,4 +1,4 @@
-import type * as st from './systems/types'
+import type * as st from '../../../template/src/systems/types'
 
 export type EntityId = string
 export type EnemyMode = 'chase' | 'wander'

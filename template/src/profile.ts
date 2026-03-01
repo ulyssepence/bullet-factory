@@ -33,6 +33,7 @@ let root: Node = mkNode()
 let frameRoot: Node = mkNode()
 let frameCount = 0
 let totalFrames = 0
+let flushStart = performance.now()
 let gl: THREE.WebGLRenderer | null = null
 
 const spikeBuffer: SpikeEntry[] = []
@@ -102,9 +103,11 @@ export function frame() {
 
   frameRoot = mkNode()
 
-  if (frameCount < 60) return
+  const elapsed = performance.now() - flushStart
+  if (elapsed < 1000) return
 
-  const lines: string[] = [`[profile] ${frameCount} frames averaged:`]
+  const fps = (frameCount / elapsed * 1000).toFixed(0)
+  const lines: string[] = [`[profile] ${frameCount} frames in ${(elapsed / 1000).toFixed(1)}s (${fps} fps):`]
   printNode(lines, root, '', frameCount, true)
 
   let renderData: { drawCalls: number, triangles: number } | null = null
@@ -128,6 +131,7 @@ export function frame() {
 
   root = mkNode()
   frameCount = 0
+  flushStart = performance.now()
 }
 
 function toProfileNodes(node: Node, frames: number): ProfileNode[] {
