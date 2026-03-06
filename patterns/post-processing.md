@@ -19,6 +19,8 @@ Full-screen shader pass that reads the rendered scene buffer and outputs a modif
 - **`scene(uv)` / `prev(uv)` return `vec3`**, not `vec4`. They apply `fract(uv)` internally so out-of-range UVs tile.
 - **Test-compile needs `void main()`**: The postprocessing library provides `mainImage()`, not `main()`. When test-compiling against a raw WebGL context (outside the library), append a stub `void main()` that calls `mainImage`.
 - **`copyTextureToTexture` fails silently on render target textures**. Use a fullscreen quad blit (`renderer.setRenderTarget(dst)` + `renderer.render(blitScene, blitCamera)`) instead.
+- **Compounding darkness:** Vignette + contrast boost + tint + fog multiply together. Budget one darkening operation. Test by checking player visibility at screen edges where vignette is strongest.
+- **Color tint hue-locks the palette:** A saturated tint (e.g. `mix(color, blue, 0.3)`) makes all palette diversity unreadable. Keep tint strength ≤ 0.15 or use a neutral warm.
 
 ## Shader body contract
 

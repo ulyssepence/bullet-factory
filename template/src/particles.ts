@@ -78,6 +78,8 @@ uniform float uSizeMax;
 uniform float uSizeScale;
 uniform float uOpacity;
 uniform float uLoop;
+uniform float uWrap;
+uniform vec3 uCameraPos;
 
 attribute float aSeed;
 attribute vec3 aVelocityOffset;
@@ -108,6 +110,12 @@ void main() {
   vec3 vel = uVelocity + aVelocityOffset * uVelocitySpread;
   vec3 spawnOffset = aVelocityOffset * uSpread;
   vec3 pos = uOrigin + spawnOffset + vel * age + vec3(0.0, 0.5 * uGravity * age * age, 0.0);
+
+  if (uWrap > 0.5) {
+    vec3 extent = uSpread * 0.5;
+    vec3 rel = pos - uCameraPos;
+    pos = uCameraPos + mod(rel + extent, 2.0 * extent) - extent;
+  }
 
   float size = mix(uSizeMin, uSizeMax, aSizeOffset) * uSizeScale;
   size *= 1.0 - t * t;
@@ -239,6 +247,8 @@ function createSlot(presetName: string): PoolSlot {
       uOpacity: { value: 1 },
       uAlphaCap: { value: 1 },
       uLoop: { value: 0 },
+      uWrap: { value: 0 },
+      uCameraPos: { value: new THREE.Vector3() },
     },
     transparent: true,
     depthWrite: false,
@@ -280,6 +290,7 @@ function applyPreset(slot: PoolSlot, presetName: string, origin: [number, number
   u.uOpacity.value = p.opacity
   u.uAlphaCap.value = p.alphaCap
   u.uLoop.value = p.loop ? 1 : 0
+  u.uWrap.value = (p.followCamera && p.spread.every(s => s > 0)) ? 1 : 0
 
   slot.inUse = true
   slot.preset = presetName
@@ -360,7 +371,7 @@ export function ParticlePool() {
         slot.material.uniforms.uTime.value = now
         if (slot.inUse && preset.followCamera && cameraRef) {
           const cp = cameraRef.position
-          slot.material.uniforms.uOrigin.value.set(cp.x, cp.y, cp.z)
+          slot.material.uniforms.uCameraPos.value.set(cp.x, cp.y, cp.z)
         }
         if (slot.inUse && !preset.loop) {
           if (now - slot.startTime > slot.maxLifetime + 0.1) {

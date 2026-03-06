@@ -18,6 +18,8 @@ Mount `<particles.ParticlePool />` inside `<Canvas>` once. This pre-allocates al
 | `sparkle` | 15 twinkling particles, looping | Ambient, pickups, collectibles |
 | `rain` | 200 falling particles, camera-following volume | Weather, ambient. Origin auto-tracks camera. |
 
+> **Note:** `followCamera` wraps particles around the camera volume using modular arithmetic. Particles maintain world-space trajectories — only their apparent position wraps to stay within `spread` distance of the camera. This prevents the "particles glued to screen" artifact. Only use `followCamera` for tileable ambient effects (rain, snow, dust) — not for directional or positional particles.
+
 ## One-shot API
 
 Fire-and-forget. Pool auto-reclaims after lifetime expires.

@@ -205,6 +205,31 @@ Reusable runtime gameplay systems live in `template/src/systems/`. Games import 
 - All constants parameterized via config objects. No hardcoded magic numbers.
 - Entity ID generation via `genId: () => string` parameter — games provide from their seeded PRNG.
 
+## HUD update pattern
+
+The game tick mutates state in place (see above). Zustand uses `Object.is` to detect changes, so same-reference mutations are invisible to `useSyncExternalStore` subscribers. This means React HUD components driven by Zustand will show stale values.
+
+**Rule:** HUD elements that display per-frame values (HP, XP, timer, kills) must read state directly via `requestAnimationFrame` + DOM manipulation (refs + `.style` updates), not via React re-renders. This is the same approach used by screen-flash overlays in generated games — direct DOM manipulation bypassing React.
+
+Example:
+
+    function HealthBar() {
+      const barRef = useRef<HTMLDivElement>(null)
+      useEffect(() => {
+        let raf: number
+        const tick = () => {
+          const { hp, maxHp } = gameStore.getState().player
+          if (barRef.current) barRef.current.style.width = `${(hp / maxHp) * 100}%`
+          raf = requestAnimationFrame(tick)
+        }
+        raf = requestAnimationFrame(tick)
+        return () => cancelAnimationFrame(raf)
+      }, [])
+      return <div ref={barRef} className="health-bar" />
+    }
+
+Zustand `useStore()` is fine for infrequent state (pause, game-over, menu screens) — just not for values that change every tick.
+
 ## Why not ECS?
 
 Miniplex and bitECS are available (see R3F research doc), but for a generated game the mutable-state-with-systems pattern is simpler to produce correctly. An LLM generating code against a typed `GameState` interface has a clear contract. ECS requires understanding archetypes, queries, and system ordering — more surface area for generation errors. If performance becomes an issue (thousands of entities), the state shape is already data-oriented enough to migrate the hot paths to bitECS without rewriting the game logic.

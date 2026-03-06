@@ -272,6 +272,18 @@ Guidelines by weapon type:
 - **AoE** (radial, explosion): base radius small, hits few. Coverage grows via upgrades.
 - **Utility** (orbital, shield): base count=1, slow rotation. Density comes from upgrades.
 
+### Range constraint
+
+Projectile range = `projectileLifetime * projectileSpeed`. Range determines how tight the positional feedback loop is — half-screen range forces constant repositioning (tight loop), off-screen range enables passive play (broken loop). At typical camera height, the visible area is ~30 units wide.
+
+Per archetype:
+- **Targeted projectiles** (bullet, spray, thrown): level-1 range ≤12 units (~half-screen). Forces the player into the action.
+- **Orbital/radial**: validate coverage area and orbit radius, not linear range.
+- **Beam/lightning/smite**: may exceed 12 units if cadence is slow, target cap is low, or damage budget compensates.
+- **Hard fail**: >15 units for any weapon at level 1.
+
+Example failure: `lifetime=1.0, speed=14` → 14-unit range. Technically under 15 but plays like a sniper. Fix: `lifetime=0.6` → 8.4 units.
+
 ## Upgrade selection algorithm
 
 Upgrades are organized as sequences (rows in a vending machine). Each sequence is an ordered track of increasingly powerful items. The player can only be offered the **front** of each sequence — the first item they haven't yet taken.

@@ -48,6 +48,7 @@ Draft all sections autonomously — do NOT ask the user for confirmation between
   > | Enemy: ___ | | per type |
   >
   > Mood:
+  > **Diversity check:** Confirm ground, wall, player, and accent span at least 3 distinct hue families (ground and wall may share a family if their lightness differs by ≥30%). If player, accent, and enemies all fall within a ~60° hue arc, reject and regenerate. See `patterns/palette.md` → Gotchas.
 
 - [ ] **Font** — Pick a thematic font from the curated font library. The library lives at `fonts/library.json` (built once via `npx tsx scripts/preview-fonts.ts` — not per-game). If `fonts/library.json` doesn't exist yet, run `npx tsx scripts/preview-fonts.ts` from the project root to curate the font library first. Browse the library, pick one display font for titles/menus and optionally a second for HUD numbers based on the game's tone. Copy the `.woff2` files from `fonts/` into the game's `static/fonts/`.
   > Display font:     (e.g. "Bungee Shade")
@@ -452,7 +453,7 @@ Every step must include at least one **juice** item — a small code-only feel t
 
 - [ ] **2.6c Balance sanity check** — Before proceeding, verify these balance invariants against spec + tuning values:
   - [ ] **Fire rate vs damage:** If starting weapon cooldown < 0.3s, starting damage must be < 50% of weakest enemy HP. (High fire rate = low per-hit damage.)
-  - [ ] **Weapon range:** No starting weapon has infinite range. `projectileLifetime * projectileSpeed` or orbit radius must be < 15 units for level 1.
+  - [ ] **Weapon range:** `projectileLifetime * projectileSpeed` for targeted projectiles must be **≤12 units** for level 1 (roughly half-screen). Orbital/radial weapons: validate coverage area, not linear range. Beam/lightning may exceed 12 if cadence or target cap compensates. >15 units for any weapon is a hard fail. See `patterns/game-spec.md` → Range constraint.
   - [ ] **Player vs enemy speed:** Player base speed should be 1.1–1.3x the speed of the most common wave-1 enemy. Check `spec.player.speed` vs `spec.enemies[wave1Type].speed`.
   - [ ] **Movement upgrades:** Spec must include at least one movement speed upgrade in the upgrade pool.
   - [ ] **I-frame cooldown:** `contactInvuln` in tuning must be 0.3–1.0s. Too low = stun-lock deaths. Too high = invincible.
@@ -542,6 +543,7 @@ Every step must include at least one **juice** item — a small code-only feel t
       - [ ] Reduce screen shake toggle → `store.accessibility.reduceShake`
       - [ ] Disable flash effects toggle → `store.accessibility.disableFlash`
       - [ ] Reduce hitstop toggle → `store.accessibility.reduceHitstop`
+  - [ ] **HUD reads mutable state directly:** HP, XP, timer, kills bars use `requestAnimationFrame` + DOM refs, not Zustand subscriptions. Zustand's `Object.is` check makes same-reference mutations invisible. See `patterns/game-architecture.md` → HUD update pattern.
   - [ ] HUD updates during gameplay
   - [ ] Weapon HUD: row of weapon icons (bottom or side of screen) showing all currently held weapons
     - [ ] Each weapon shows: icon (graybox = colored shape per weapon category), cooldown ring/overlay that fills as weapon recharges
@@ -611,6 +613,7 @@ Every step must include at least one **juice** item — a small code-only feel t
 - [ ] **Touch controls** — Virtual joystick overlay for mobile. Touch targets ≥44px. Test in Chrome DevTools mobile emulation.
   - [ ] Joystick moves player
   - [ ] No layout issues at 375×667
+  - [ ] **Ref guard on desktop:** If VirtualJoystick returns null on non-touch, any useEffect accessing its refs must null-check first (`if (!ref.current) return`). Unconditional ref access crashes on desktop.
 
 - [ ] **Cross-browser smoke test** — Run `npm run smoke-test http://localhost:3000 --browsers=chromium` (add `firefox,webkit` if available). All checks must pass. See `patterns/cross-browser-testing.md`.
 
@@ -646,7 +649,7 @@ Start the dev server (`npm run dev <slug> -- --serve`). Present the playable gra
   - [ ] Verified via playwright: after transition, `__audioPlayer.currentTrack` is correct track name
 
 
-- [ ] **3.1 Mesh manifest** — Write `mesh-manifest.json` in the game root using `meshPrompt` fields from pre-production. The manifest has two sections: `characters` (enemies, bosses, players — rigged + animated) and `props` (walls, destructibles, shrines, pickups, weapon projectiles, dressing — static only). Weapon projectiles and pickups are props (no rig needed). Each entry can set `targetPolycount` to override the default budget. Include a `role` field describing the mesh's gameplay purpose — the material zone preview tool displays this for context. Polygon budgets (enforced via Meshy remesh): enemy=1500, boss=5000, player=3000, prop=500. See `scripts/generate-meshes.ts` for format.
+- [ ] **3.1 Mesh manifest** — Write `mesh-manifest.json` in the game root using `meshPrompt` fields from pre-production. The manifest has two sections: `characters` (enemies, bosses, players — rigged + animated) and `props` (walls, destructibles, shrines, pickups, weapon projectiles, dressing — static only). Weapon projectiles and pickups are props (no rig needed). Each entry can set `targetPolycount` to override the default budget. Include a `role` field describing the mesh's gameplay purpose — the material zone preview tool displays this for context. Polygon budgets (enforced via Meshy remesh): enemy=1500, boss=5000, player=3000, prop=500. All enemies, bosses, and player characters must be humanoid bipedal (rigged via Mixamo — see enemy/boss constraints above). Props and terrain can optionally set `animationMode`: `"procedural"` (animate in code — bob, sway, pulse) or `"static"` (default for props, no animation). See `scripts/generate-meshes.ts` for format.
   > ```json
   > {
   >   "characters": [
@@ -658,7 +661,7 @@ Start the dev server (`npm run dev <slug> -- --serve`). Present the playable gra
   > }
   > ```
 
-- [ ] **3.2 3D Meshes** — Run `npx tsx scripts/generate-meshes.ts <slug>` from the **project root**. Review thumbnails in `static/models/*-preview.png`. Re-run individual entries if quality is poor (edit manifest prompt, delete old files, re-run). Read `patterns/character-animation.md` for file layout, loading, and animation.
+- [ ] **3.2 3D Meshes** — Run `npx tsx scripts/generate-meshes.ts <slug>` from the **project root**. Review thumbnails in `static/models/*-preview.png`. Re-run individual entries if quality is poor (edit manifest prompt, delete old files, re-run). Read `patterns/character-animation.md` for file layout, loading, and animation. If rigging fails for a character, the base mesh is preserved in `static/models/rejected/` — check there for salvageable meshes (usable as static props or with `animationMode: "procedural"`).
   - [ ] All enemies generated and rigged
   - [ ] All bosses generated and rigged
   - [ ] All player characters generated and rigged
@@ -681,6 +684,8 @@ Start the dev server (`npm run dev <slug> -- --serve`). Present the playable gra
   - [ ] Post-processing pipeline renders
   - [ ] Fog effect renders (if chosen) — distant objects fade into fog color gradient
   - [ ] No significant FPS drop (budget: <2ms)
+  - [ ] **Readability check:** Player and enemies distinguishable at screen edges (vignette strongest). Vignette must darken periphery only — the central gameplay area (where player stands) must not be visibly darkened by post-processing. Compound darkening (vignette + fog + tint) is the #1 failure mode — remove a layer before tuning intensities. See `patterns/post-processing.md` → Gotchas.
+  - [ ] **No unintended tint:** If palette isn't blue, post-processing shouldn't add blue cast. Sample ground color at center with/without effects — hue shift >30° = unintended tint.
   - [ ] Effects complement the game's palette/mood
 
 ---

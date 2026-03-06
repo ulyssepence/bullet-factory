@@ -50,7 +50,4 @@ if (prompt) {
   fs.writeFileSync(sopPath, sop.replace('> Prompt:', `> Prompt: ${prompt}`))
 }
 
-const orchestrator = path.join(process.env.HOME!, 'Source/pinocchio/src/markdown/skills/sop/orchestrator.py')
-
-console.log(`Running SOP orchestrator on ${sopPath}...`)
-execSync(`uv run ${orchestrator} ${sopPath} --allow-permissions`, { stdio: 'inherit' })
+console.log(`\nNext step: start Claude and run the SOP:\n\n  claude\n  /sop ${sopPath}\n`)

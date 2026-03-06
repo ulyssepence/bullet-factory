@@ -35,8 +35,8 @@ function useCharacter(basePath: string) {
   // Rename clips for easy access
   const clips = useMemo(() => {
     const all: THREE.AnimationClip[] = []
-    for (const c of walkAnims) all.push(c.clone().setName('walk'))
-    for (const c of runAnims) all.push(c.clone().setName('run'))
+    for (const c of walkAnims) { const cl = c.clone(); cl.name = 'walk'; all.push(cl) }
+    for (const c of runAnims) { const cl = c.clone(); cl.name = 'run'; all.push(cl) }
     return all
   }, [walkAnims, runAnims])
 
@@ -99,3 +99,4 @@ useFrame((_, delta) => {
 - **Animation clips from separate GLBs work** because Meshy uses the same Mixamo skeleton across all outputs for a given character. The bone names and hierarchy match exactly.
 - **Preload all GLBs** to avoid pop-in: `useGLTF.preload(['models/x-rigged.glb', 'models/x-walk.glb', 'models/x-run.glb'])`
 - **Scale/rotation**: Meshy models face +Z in T-pose. You may need `rotation-y={Math.PI}` to face the camera or movement direction.
+- **`AnimationClip` has no `setName()` method.** `name` is a plain string property. Use `const cl = c.clone(); cl.name = 'walk'` — not `c.clone().setName('walk')`.

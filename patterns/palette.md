@@ -57,3 +57,8 @@ The web picker shows ~50 generated candidates. Click to select a whole palette, 
 - Props and destructibles should use `spec.palette` roles, not invented hex.
 - Feedback emit calls pass `color: spec.palette.accent` (or appropriate role) at call site.
 - Grass system receives `derived.zoneFloors` as zone palettes.
+
+## Gotchas
+
+- **Hue clustering:** LLM-generated palettes drift toward a single hue family (commonly blue-cyan). Require ≥3 distinct hue regions across the 5 roles (ground and wall may share a family if their lightness differs by ≥30%). If player, accent, and enemies hues are all within 60°, reject and regenerate.
+- **Contrast at game zoom:** At typical camera height (~25 units), silhouettes are small. Player vs ground must have strong value contrast. Use a contrast checker on hex values before finalizing.
