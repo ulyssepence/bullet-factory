@@ -18,6 +18,7 @@ interface ModelGroup {
   rigged?: string
   walk?: string
   run?: string
+  zones?: object
 }
 
 const modelsDir = path.resolve('tools/mesh-generation/static/models')
@@ -72,6 +73,25 @@ for (const file of files) {
   if (!group.base && !group.rigged) {
     group.base = copyFile(abs)
   }
+
+  let zoneConfig: object | undefined
+  let searchDir = dir
+  const projectRoot = path.resolve('.')
+  while (searchDir.length >= projectRoot.length) {
+    const zonesDir = path.join(searchDir, 'material-zones')
+    if (fs.existsSync(zonesDir)) {
+      const zoneFile = path.join(zonesDir, `${baseName}.json`)
+      if (fs.existsSync(zoneFile)) {
+        zoneConfig = JSON.parse(fs.readFileSync(zoneFile, 'utf-8'))
+        console.log(`  Found zone config: ${baseName}.json`)
+      }
+      break
+    }
+    const parent = path.dirname(searchDir)
+    if (parent === searchDir) break
+    searchDir = parent
+  }
+  if (zoneConfig) group.zones = zoneConfig
 
   console.log(`  ${baseName}: ${[group.base && 'base', group.rigged && 'rigged', group.walk && 'walk', group.run && 'run'].filter(Boolean).join(', ')}`)
   groups.push(group)

@@ -1,0 +1,222 @@
+[
+  {
+    "name": "cowboy-bot",
+    "base": "cowboy-bot.glb",
+    "rigged": "cowboy-bot-rigged.glb",
+    "walk": "cowboy-bot-walk.glb",
+    "run": "cowboy-bot-run.glb",
+    "zones": {
+      "zones": [
+        {
+          "name": "hat",
+          "debugColor": "#ff0000",
+          "style": "worn",
+          "color": "#6b3e2e",
+          "height": [
+            0.88,
+            1
+          ]
+        },
+        {
+          "name": "arms",
+          "bones": [
+            "LeftShoulder",
+            "LeftArm",
+            "LeftForeArm",
+            "LeftHand",
+            "RightShoulder",
+            "RightArm",
+            "RightForeArm",
+            "RightHand"
+          ],
+          "debugColor": "#00ff00",
+          "style": "worn",
+          "color": "#8b6914",
+          "height": [
+            0.47,
+            0.83
+          ],
+          "absX": [
+            0.5,
+            1
+          ]
+        },
+        {
+          "name": "head",
+          "bones": [
+            "neck",
+            "Head",
+            "head_end",
+            "headfront"
+          ],
+          "debugColor": "#ff8800",
+          "style": "metallic",
+          "color": "#d4c5a9",
+          "height": [
+            0.73,
+            0.87
+          ],
+          "absX": [
+            0,
+            0.5
+          ]
+        },
+        {
+          "name": "torso",
+          "bones": [
+            "Hips",
+            "Spine",
+            "Spine01",
+            "Spine02"
+          ],
+          "debugColor": "#0000ff",
+          "style": "metallic",
+          "color": "#7a6e5a",
+          "height": [
+            0.47,
+            0.83
+          ],
+          "absX": [
+            0,
+            0.5
+          ]
+        },
+        {
+          "name": "legs",
+          "bones": [
+            "LeftUpLeg",
+            "LeftLeg",
+            "LeftFoot",
+            "LeftToeBase",
+            "RightUpLeg",
+            "RightLeg",
+            "RightFoot",
+            "RightToeBase"
+          ],
+          "debugColor": "#ffff00",
+          "style": "worn",
+          "color": "#4a3728",
+          "height": [
+            0,
+            0.47
+          ]
+        }
+      ],
+      "fallback": {
+        "debugColor": "#888888",
+        "style": "rough",
+        "color": "#555555"
+      }
+    }
+  },
+  {
+    "name": "bandit-runner",
+    "base": "bandit-runner.glb",
+    "rigged": "bandit-runner-rigged.glb",
+    "walk": "bandit-runner-walk.glb",
+    "run": "bandit-runner-run.glb",
+    "zones": {
+      "zones": [
+        {
+          "name": "hat",
+          "debugColor": "#ff0000",
+          "style": "slate",
+          "color": "#C8A882",
+          "height": [
+            0.88,
+            1
+          ]
+        },
+        {
+          "name": "head",
+          "bones": [
+            "neck",
+            "Head",
+            "head_end",
+            "headfront"
+          ],
+          "debugColor": "#ff8800",
+          "style": "obsidian",
+          "color": "#DDD0BB",
+          "height": [
+            0.73,
+            0.87
+          ],
+          "absX": [
+            0,
+            0.5
+          ]
+        },
+        {
+          "name": "arms",
+          "bones": [
+            "LeftShoulder",
+            "LeftArm",
+            "LeftForeArm",
+            "LeftHand",
+            "RightShoulder",
+            "RightArm",
+            "RightForeArm",
+            "RightHand"
+          ],
+          "debugColor": "#00ff00",
+          "style": "cobblestone",
+          "color": "#CC9966",
+          "height": [
+            0.47,
+            0.83
+          ],
+          "absX": [
+            0.5,
+            1
+          ]
+        },
+        {
+          "name": "torso",
+          "bones": [
+            "Hips",
+            "Spine",
+            "Spine01",
+            "Spine02"
+          ],
+          "debugColor": "#0000ff",
+          "style": "crystalline",
+          "color": "#DDBB88",
+          "height": [
+            0.47,
+            0.83
+          ],
+          "absX": [
+            0,
+            0.5
+          ]
+        },
+        {
+          "name": "legs",
+          "bones": [
+            "LeftUpLeg",
+            "LeftLeg",
+            "LeftFoot",
+            "LeftToeBase",
+            "RightUpLeg",
+            "RightLeg",
+            "RightFoot",
+            "RightToeBase"
+          ],
+          "debugColor": "#ffff00",
+          "style": "cobblestone",
+          "color": "#BBA080",
+          "height": [
+            0,
+            0.47
+          ]
+        }
+      ],
+      "fallback": {
+        "debugColor": "#888888",
+        "style": "dirt",
+        "color": "#AA9070"
+      }
+    }
+  }
+]
