@@ -722,4 +722,8 @@ Start the dev server (`npm run dev <slug> -- --serve`). Present the playable gra
 - [ ] **Performance optimization** — The profiler is already wired into `tick()` and the renderer (`src/profile.ts`). Instrument every system call in `tick()` with `profile.start/stop` pairs, then run `PROFILE=1 npm run dev`. Stress-test peak enemies + projectiles + particles + post-processing. Read the avg/max tree and spike dumps to identify which systems exceed budget (<16ms tick, <16ms render). Fix the actual bottlenecks.
   - [ ] Peak scenario stays within frame budget
   - [ ] No GC pauses during gameplay (check for max >> avg in profiler output)
-  - [ ] If tick is under budget but frames still drop: check `renderer.info` — draw calls >200 → instancing/merging, triangles >500k → LOD/culling.
+  - [ ] If tick is under budget but frames still drop → **GPU-bound**. Diagnose:
+    - Check `renderer.info.render.triangles` — if <200k, you're **fragment-bound** not vertex-bound
+    - Fragment-bound (most common on mobile): bake GrayboxMaterial noise to texture (`noise-texture.ts`, see `patterns/graybox-materials.md`), switch to `BasicShadowMap`, merge meshes with vertex colors to reduce draw calls
+    - Vertex-bound: merge geometries, reduce triangle count, add LOD
+    - Draw calls >200: instancing for repeated meshes, merge static geometry with `mergeGeometries`
