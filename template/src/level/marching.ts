@@ -1,4 +1,4 @@
-import { WALL, HAZARD } from './ca'
+import { WALL, HAZARD, GATE } from './ca'
 
 export type Contour = Float32Array // [x0, z0, x1, z1, ...]
 
@@ -44,7 +44,7 @@ function edgeMidpoint(edge: number, cx: number, cz: number, cellSize: number): [
 type Segment = { x0: number; z0: number; x1: number; z1: number }
 
 function isSolid(cell: number, targetType: number): boolean {
-  if (targetType === WALL) return cell === WALL
+  if (targetType === WALL) return cell === WALL || cell === GATE
   return cell === targetType
 }
 

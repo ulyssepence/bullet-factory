@@ -1,18 +1,29 @@
 export const FLOOR = 0
 export const WALL = 1
 export const HAZARD = 2
+export const GATE = 3
 
 export type ZoneDef = {
   density: number
   motifs: string[][]
   hue: number
   smoothingPasses?: number  // 0 = angular, 3+ = organic. default 2
+  tacticalIdentity?: 'inner' | 'open' | 'dense' | 'hazard'
+  enemyPool?: string[]
+  height?: number
 }
 
 export type BoundaryDef = {
   zoneA: number
   zoneB: number
-  type: 'dense' | 'river' | 'hazard'
+  type: 'dense' | 'river' | 'hazard' | 'elevation' | 'path' | 'destructible'
+}
+
+export type GateConfig = {
+  zoneA: number
+  zoneB: number
+  condition: GateCondition
+  width?: number
 }
 
 export type ArenaConfig = {
@@ -20,10 +31,33 @@ export type ArenaConfig = {
   zones: ZoneDef[]
   boundaries: BoundaryDef[]
   corridors?: { from: number; to: number }[]
+  gateConfigs?: GateConfig[]
+  loopPath?: number[]
   spawnPoint?: [number, number]
   chunkSize: number
   caIterations: number
   seed: number
+}
+
+export type GateCondition =
+  | { type: 'timer'; seconds: number }
+  | { type: 'kills'; count: number }
+  | { type: 'boss'; bossType: string }
+
+export type Gate = {
+  cells: number[]
+  condition: GateCondition
+  open: boolean
+  zoneA: number
+  zoneB: number
+}
+
+export type DestructibleBarrier = {
+  cells: number[]
+  health: number
+  maxHealth: number
+  zoneA: number
+  zoneB: number
 }
 
 export type ArenaResult = {
@@ -31,6 +65,11 @@ export type ArenaResult = {
   zoneMap: Uint8Array
   motifMask: Uint8Array
   worldSize: number
+  heightmap?: Float32Array
+  speedGrid?: Float32Array
+  gates?: Gate[]
+  barriers?: DestructibleBarrier[]
+  landmark?: { x: number; z: number; zone: number } | null
   stats: {
     worldSize: number
     density: number
@@ -133,7 +172,27 @@ export function postProcessCA(grid: Uint8Array, size: number): boolean {
     if (grid[i] === FLOOR) floorCount++
   }
   const ratio = floorCount / grid.length
-  return ratio >= 0.20 && ratio <= 0.80
+  if (ratio < 0.60 || ratio > 0.90) return false
+
+  // Min open-area radius: sample every 4th floor cell, BFS within Manhattan distance 5
+  let sampleIdx = 0
+  for (let i = 0; i < grid.length; i++) {
+    if (grid[i] !== FLOOR) continue
+    if (sampleIdx++ % 4 !== 0) continue
+    let connected = 0
+    const ix = i % size, iz = (i / size) | 0
+    for (let dz = -5; dz <= 5; dz++) {
+      for (let dx = -5; dx <= 5; dx++) {
+        if (Math.abs(dx) + Math.abs(dz) > 5) continue
+        const nx = ix + dx, nz = iz + dz
+        if (nx < 0 || nx >= size || nz < 0 || nz >= size) continue
+        if (grid[nz * size + nx] === FLOOR) connected++
+      }
+    }
+    if (connected < 20) return false
+  }
+
+  return true
 }
 
 export function stampMotif(

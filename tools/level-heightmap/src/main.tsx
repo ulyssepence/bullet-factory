@@ -72,12 +72,12 @@ function App() {
 
   const heightmap = useMemo(
     () => generateHeightmap(result.grid, result.zoneMap, result.worldSize, zoneHeights, seed),
-    [result, zoneHeights, seed, rebuildKey],
+    [result, zoneHeights, seed],
   )
 
   const speedGrid = useMemo(
     () => buildSpeedGrid(heightmap, result.grid, result.worldSize),
-    [heightmap, result, rebuildKey],
+    [heightmap, result],
   )
 
   useEffect(() => {
@@ -99,7 +99,7 @@ function App() {
   return (
     <>
       <Canvas
-        shadows="basic"
+        shadows={false}
         camera={{ position: [center, center * 1.2, center + center * 0.8], fov: 50, near: 0.1, far: 500 }}
         style={{ width: '100vw', height: '100vh', background: '#556' }}
       >
@@ -116,7 +116,7 @@ function App() {
           landmarkPos={landmarkXZ}
           gate={gateRef.current}
           gateTimer={gateTimer}
-          onGateOpen={() => setRebuildKey(k => k + 1)}
+          onGateOpen={() => {}}
           entityCount={entityCount}
           chestTimer={chestTimer}
           rebuildKey={rebuildKey}

@@ -126,7 +126,8 @@ export function tickProjectiles(
     proj.position[0] = grid.wrapCoord(proj.position[0], ws)
     proj.position[2] = grid.wrapCoord(proj.position[2], ws)
 
-    if (levelGrid[grid.gridIdx(proj.position[0], proj.position[2], ws)] === 1) {
+    const cellAt = levelGrid[grid.gridIdx(proj.position[0], proj.position[2], ws)]
+    if (cellAt === 1 || cellAt === 3) {
       state.projectiles.delete(id); continue
     }
     if (proj.lifetime <= 0) {

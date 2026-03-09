@@ -168,24 +168,55 @@ Draft all sections autonomously — do NOT ask the user for confirmation between
   > Custom profiles: (e.g. "crit: heavy shake + 100ms hitstop + radial particles")
   > Flash style: (mesh emissive / postfx uniform / CSS overlay / none)
 
-- [ ] **Map** — CA-based procedural terrain using `template/src/level/`. Define zones, density, boundaries, and optional motifs. (`patterns/level-generation.md` → CA-based section). Tunables: `chunkSize` (cells per zone side, default 32), `caIterations` (CA smoothing passes, default from code — higher = smoother caves).
-  > Zones (each becomes a region on the map with distinct CA density + palette):
+- [ ] **Map** — Theory of Place level design. Read `patterns/level-generation.md`.
+  > **Arena graph** (5-7 nodes, edges with boundary types):
   > ```
-  > Zone 1: name=  density=  (0.0=open, 1.0=dense)
-  > Zone 2: name=  density=
-  > (define 2-4 zones themed to setting)
+  > Nodes:
+  >   node 1: id=  name=  tacticalIdentity=(inner|open|dense|hazard)
+  >   node 2: ...
+  > Edges:
+  >   edge: from=  to=  boundary=(dense|river|hazard|elevation|path|destructible)
+  > Loop path: (e.g. "spawn -> zone1 -> zone2 -> zone3 -> spawn")
+  > Gate edge: from=  to=  condition=(timer:Ns | kills:N | boss:name | soft-power)
+  > ```
+  >
+  > Wire in spec.ts:
+  >   `gateConfigs: [{ zoneA: N, zoneB: N, condition: { type: 'timer', seconds: N } }]`
+  >   `loopPath: [zone IDs from loop path above, e.g. [0, 1, 2, 0]]`
+  >
+  > **Zone map** (8x8 ASCII grid, zone IDs):
+  > ```
+  > (fill 8x8 grid with zone IDs matching graph topology)
+  > ```
+  >
+  > **Landmark**:
+  > ```
+  > name=  description=  meshPrompt=  zone=  vaultContents=
+  > ```
+  >
+  > **Micro-cycles** (2-3):
+  > ```
+  > cycle 1: type=(timed-chest|kill-shrine|terrain-change|npc|challenge)  zone=  trigger=  reward=  visualCue=
+  > ```
+  >
+  > **Per-zone enemy pools**:
+  > ```
+  > zone 1: enemyPool=[enemy types from Enemies section]
+  > zone 2: enemyPool=...
+  > ```
+  >
+  > **Zone internal logic** (one sentence per zone — why it exists thematically):
+  > ```
+  > zone 1: "..."
+  > zone 2: "..."
+  > ```
+  >
+  > **Chunk templates** — tagged by zone ID, obstacle density must match tactical identity:
+  > ```
+  > Zone 1: density=  motifs=
+  > Zone 2: density=  motifs=
   > chunkSize=  (default 32)
-  > caIterations=  (default from DEMO_CONFIG — tune for cave smoothness)
-  > ```
-  >
-  > Boundaries between zones (optional):
-  > ```
-  > (e.g. "dense wall between wilderness and mines", "river between towns and wilderness")
-  > ```
-  >
-  > Motifs (optional hand-placed features stamped onto CA output):
-  > ```
-  > (e.g. "boss arena: 12×12 open circle", "shrine clearing: 8×8 open square")
+  > caIterations=  (default from DEMO_CONFIG)
   > ```
   >
   > Destructibles (`DestructibleDef`): id, name, health, size, loot
@@ -197,6 +228,8 @@ Draft all sections autonomously — do NOT ask the user for confirmation between
   > ```
   > (complete one entry per shrine type — minimum 2)
   > ```
+  >
+  > **Validation feedback loop**: If `scripts/validate-arena.ts` fails, read the error message and adjust the zone map or simplify boundaries. Do not regenerate from scratch.
 
 - [ ] **Terrain & props** — Define mesh prompts for all static objects (no rig/animation). Include wall variants, destructibles, shrines, pickups/drops, and environmental dressing. Each needs a `meshPrompt` — identity only (silhouette, features). Shared art style goes in mesh-manifest.json's `style` field — see `patterns/mesh-style-coherence.md`. Think about what the player sees at game zoom — simple, readable silhouettes matter more than detail.
   > ```
@@ -385,11 +418,18 @@ Every step must include at least one **juice** item — a small code-only feel t
   - [ ] Budget caps tested: 50+ simultaneous kills don't cause audio distortion or particle blowout
   - [ ] Verified via playwright
 
-- [ ] **2.2 Level generation** — Use `assembleArenaV2()` from `template/src/level/generate.ts` (CA-based). Configure zones from Map section. Read `patterns/level-generation.md` (CA section) and `docs/2026-02-26_00-59-53_Organic terrain from grid data in VS-likes.md`. Apply organic terrain tier based on terrain archetype from Concept.
-  - [ ] Arena generated via `assembleArenaV2()` with zone configs from spec
+- [ ] **2.2 Level generation** — Use `assembleArenaV2()` from `template/src/level/generate.ts` (CA-based). Configure zones from Map section with tactical identities and enemy pools. Read `patterns/level-generation.md`. Apply organic terrain tier based on terrain archetype from Concept.
+  - [ ] Arena generated via `assembleArenaV2()` with zone configs from spec (tacticalIdentity, enemyPool, height)
+  - [ ] Arena graph validation (`scripts/validate-arena.ts`) — all checks pass
   - [ ] Walls render with correct palette color + graybox material style
   - [ ] Ground noise renders (Perlin color variation visible on floor planes)
   - [ ] Wall boundaries smoothed per archetype (contours for natural/mixed, straight for structured)
+  - [ ] All 6 boundary types rendered (dense, river, hazard, elevation, path, destructible)
+  - [ ] Landmark placement — always-rendered tall mesh via `findLandmarkPosition` + `carveLandmarkClearing`
+  - [ ] Gate system wired — condition checked per tick, `openGate()` on success, geometry rebuilt for affected chunks
+  - [ ] Per-zone enemy spawning — zone pool selection at spawn time via `getZoneAtCell` + `getEnemyPool`
+  - [ ] Heightmap terrain (if terrain archetype is natural/mixed) — `generateHeightmap` + `buildSpeedGrid`
+  - [ ] Speed modifier grid applied to enemy movement + navigation Dijkstra
   - [ ] Props scatter at wall-floor transitions
   - [ ] Juice: (invent one)
   - [ ] Verified via playwright

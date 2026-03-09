@@ -1,0 +1,108 @@
+import fc from 'fast-check'
+import * as THREE from 'three'
+import { FLOOR, WALL, GATE, DEMO_CONFIG } from '../../template/src/level/ca'
+import type { ArenaConfig } from '../../template/src/level/ca'
+import { extractContours, smoothContour } from '../../template/src/level/marching'
+import { buildWallGeo, buildWallFillGeo } from '../../template/src/level/terrain-geo'
+import { assembleArenaV2 } from '../../template/src/level/generate'
+
+const height = 1.2
+const jitter = 0.1
+const margin = 6
+
+const MAX_EXPOSED_PCT = 0
+
+function runCheck(seed: number): { exposed: number; checked: number } {
+  const config: ArenaConfig = { ...DEMO_CONFIG, seed }
+  const { grid, zoneMap, worldSize } = assembleArenaV2(config)
+
+  const isWall = (x: number, z: number) => {
+    if (x < 0 || x >= worldSize || z < 0 || z >= worldSize) return false
+    const c = grid[z * worldSize + x]
+    return c === WALL || c === GATE
+  }
+
+  const contours = extractContours(grid, worldSize, 1, WALL)
+  const smoothed = contours.map(c => smoothContour(c, 1))
+
+  const zoneContours = new Map<number, Float32Array[]>()
+  for (const c of smoothed) {
+    const gx = Math.floor(c[0]), gz = Math.floor(c[1])
+    if (gx < 0 || gx >= worldSize || gz < 0 || gz >= worldSize) continue
+    const zone = zoneMap[gz * worldSize + gx]
+    if (!zoneContours.has(zone)) zoneContours.set(zone, [])
+    zoneContours.get(zone)!.push(c)
+  }
+
+  const allZones = new Set<number>([...zoneContours.keys()])
+  for (let i = 0; i < grid.length; i++) {
+    if (grid[i] === WALL || grid[i] === GATE) allZones.add(zoneMap[i])
+  }
+
+  const mat = new THREE.MeshBasicMaterial({ side: THREE.FrontSide })
+  const ribbonMeshes: THREE.Mesh[] = []
+  const fillMeshes: THREE.Mesh[] = []
+
+  for (const zone of allZones) {
+    const zContours = zoneContours.get(zone) || []
+    if (zContours.length > 0) {
+      ribbonMeshes.push(new THREE.Mesh(buildWallGeo(zContours, height, jitter, seed + zone), mat))
+    }
+    fillMeshes.push(new THREE.Mesh(buildWallFillGeo(grid, zoneMap, worldSize, height, zone), mat))
+  }
+
+  const raycaster = new THREE.Raycaster()
+  const down = new THREE.Vector3(0, -1, 0)
+  let checked = 0, exposed = 0
+
+  for (let z = margin; z < worldSize - margin; z++) {
+    for (let x = margin; x < worldSize - margin; x++) {
+      if (!isWall(x, z)) continue
+
+      const samples: [number, number][] = []
+      if (!isWall(x + 1, z)) for (let t = 0.2; t <= 0.8; t += 0.3) samples.push([x + 0.9, z + t])
+      if (!isWall(x - 1, z)) for (let t = 0.2; t <= 0.8; t += 0.3) samples.push([x + 0.1, z + t])
+      if (!isWall(x, z + 1)) for (let t = 0.2; t <= 0.8; t += 0.3) samples.push([x + t, z + 0.9])
+      if (!isWall(x, z - 1)) for (let t = 0.2; t <= 0.8; t += 0.3) samples.push([x + t, z + 0.1])
+
+      for (const [sx, sz] of samples) {
+        checked++
+        raycaster.set(new THREE.Vector3(sx, height + 1, sz), down)
+        const fillHit = fillMeshes.some(m => raycaster.intersectObject(m).length > 0)
+        if (fillHit) {
+          const ribbonHits = ribbonMeshes.flatMap(m => raycaster.intersectObject(m))
+          const hasRibbonCap = ribbonHits.some(h =>
+            h.face && Math.abs(h.face.normal.y) > 0.9 && Math.abs(h.point.y - height) < 0.05
+          )
+          if (!hasRibbonCap) exposed++
+        }
+      }
+    }
+  }
+
+  return { exposed, checked }
+}
+
+console.log('Running fast-check: fill must have ribbon cap below it at exposed edges...')
+console.log(`(10 runs, threshold ${(MAX_EXPOSED_PCT * 100).toFixed(0)}% — diagonal MS boundaries exempt)\n`)
+
+const result = fc.check(
+  fc.property(fc.integer({ min: 1, max: 100_000 }), (seed) => {
+    const { exposed, checked } = runCheck(seed)
+    const pct = checked > 0 ? exposed / checked : 0
+    if (pct > MAX_EXPOSED_PCT) {
+      console.log(`  seed=${seed}: ${exposed}/${checked} exposed (${(pct * 100).toFixed(1)}%)`)
+      return false
+    }
+    return true
+  }),
+  { numRuns: 10, verbose: 1 },
+)
+
+if (result.failed) {
+  console.log(`FAIL: found counterexample after ${result.numRuns} runs`)
+  process.exit(1)
+} else {
+  console.log(`PASS: ${result.numRuns} runs, exposure within threshold`)
+  process.exit(0)
+}

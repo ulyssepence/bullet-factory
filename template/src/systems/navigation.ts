@@ -9,27 +9,27 @@ export interface NavigationConfig {
 export interface NavigationState {
   flowDirs: Int8Array
   flowGen: Uint32Array
+  flowCost: Float32Array
   flowGeneration: number
   lastFlowCell: [number, number]
-  qX: Int16Array
-  qZ: Int16Array
-  qD: Uint16Array
   worldSize: number
+  speedGrid?: Float32Array
 }
 
-export function createNavigationState(worldSize: number, bfsMax: number): NavigationState {
+export function createNavigationState(worldSize: number, _bfsMax?: number): NavigationState {
   const cells = worldSize * worldSize
   return {
     flowDirs: new Int8Array(cells * 2),
     flowGen: new Uint32Array(cells),
+    flowCost: new Float32Array(cells),
     flowGeneration: 0,
     lastFlowCell: [-999, -999],
-    qX: new Int16Array(bfsMax),
-    qZ: new Int16Array(bfsMax),
-    qD: new Uint16Array(bfsMax),
     worldSize,
   }
 }
+
+const NDX = [-1, 1, 0, 0]
+const NDZ = [0, 0, -1, 1]
 
 export function recomputeFlow(
   nav: NavigationState,
@@ -47,33 +47,85 @@ export function recomputeFlow(
   const ws = nav.worldSize
   const startIdx = grid.gridIdx(px, pz, ws)
   nav.flowGen[startIdx] = nav.flowGeneration
+  nav.flowCost[startIdx] = 0
   nav.flowDirs[startIdx * 2] = 0
   nav.flowDirs[startIdx * 2 + 1] = 0
 
-  let head = 0, tail = 0
-  nav.qX[tail] = px; nav.qZ[tail] = pz; nav.qD[tail] = 0; tail++
+  const speedGrid = nav.speedGrid
+  const hasSpeed = speedGrid !== undefined
 
-  const NDX = [-1, 1, 0, 0]
-  const NDZ = [0, 0, -1, 1]
+  // Binary min-heap for Dijkstra
+  const heapIdx: Int32Array = new Int32Array(config.maxFlowDepth * 4)
+  const heapCost: Float32Array = new Float32Array(config.maxFlowDepth * 4)
+  let heapSize = 0
 
-  while (head < tail) {
-    const cx = nav.qX[head], cz = nav.qZ[head], cd = nav.qD[head]; head++
-    if (cd >= config.maxFlowDepth) continue
+  function heapPush(idx: number, cost: number) {
+    if (heapSize >= heapIdx.length) return
+    let i = heapSize++
+    heapIdx[i] = idx
+    heapCost[i] = cost
+    while (i > 0) {
+      const parent = (i - 1) >> 1
+      if (heapCost[parent] <= heapCost[i]) break
+      const ti = heapIdx[parent]; heapIdx[parent] = heapIdx[i]; heapIdx[i] = ti
+      const tc = heapCost[parent]; heapCost[parent] = heapCost[i]; heapCost[i] = tc
+      i = parent
+    }
+  }
+
+  function heapPop(): number {
+    const result = heapIdx[0]
+    heapSize--
+    if (heapSize > 0) {
+      heapIdx[0] = heapIdx[heapSize]
+      heapCost[0] = heapCost[heapSize]
+      let i = 0
+      while (true) {
+        let smallest = i
+        const l = 2 * i + 1, r = 2 * i + 2
+        if (l < heapSize && heapCost[l] < heapCost[smallest]) smallest = l
+        if (r < heapSize && heapCost[r] < heapCost[smallest]) smallest = r
+        if (smallest === i) break
+        const ti = heapIdx[smallest]; heapIdx[smallest] = heapIdx[i]; heapIdx[i] = ti
+        const tc = heapCost[smallest]; heapCost[smallest] = heapCost[i]; heapCost[i] = tc
+        i = smallest
+      }
+    }
+    return result
+  }
+
+  heapPush(startIdx, 0)
+
+  while (heapSize > 0) {
+    const curIdx = heapPop()
+    const curCost = nav.flowCost[curIdx]
+
+    if (curCost > config.maxFlowDepth) continue
+
+    const cx = curIdx % ws
+    const cz = (curIdx / ws) | 0
 
     for (let ni = 0; ni < 4; ni++) {
       const nx = cx + NDX[ni]
       const nz = cz + NDZ[ni]
-      const nIdx = grid.gridIdx(nx, nz, ws)
-      if (nav.flowGen[nIdx] === nav.flowGeneration) continue
-      if (levelGrid[nIdx] === 1) continue
+      if (nx < 0 || nx >= ws || nz < 0 || nz >= ws) continue
+      const nIdx = nz * ws + nx
+      const cell = levelGrid[nIdx]
+      if (cell === 1 || cell === 3) continue
+
+      const edgeCost = hasSpeed
+        ? 1 + (1 - speedGrid![nIdx]) * 3
+        : 1
+      const newCost = curCost + edgeCost
+
+      if (nav.flowGen[nIdx] === nav.flowGeneration && nav.flowCost[nIdx] <= newCost) continue
 
       nav.flowGen[nIdx] = nav.flowGeneration
+      nav.flowCost[nIdx] = newCost
       nav.flowDirs[nIdx * 2] = (cx - nx) as -1 | 0 | 1
       nav.flowDirs[nIdx * 2 + 1] = (cz - nz) as -1 | 0 | 1
 
-      if (tail < nav.qX.length) {
-        nav.qX[tail] = nx; nav.qZ[tail] = nz; nav.qD[tail] = cd + 1; tail++
-      }
+      heapPush(nIdx, newCost)
     }
   }
 }
@@ -97,7 +149,8 @@ export function hasLOS(
   let fx = x0, fz = z0
   for (let i = 0; i < steps; i++) {
     fx += sx; fz += sz
-    if (levelGrid[grid.gridIdx(fx, fz, worldSize)] === 1) return false
+    const c = levelGrid[grid.gridIdx(fx, fz, worldSize)]
+    if (c === 1 || c === 3) return false
   }
   return true
 }

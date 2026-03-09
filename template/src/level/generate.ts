@@ -1,12 +1,14 @@
 import {
-  ArenaConfig, ArenaResult, FLOOR, WALL, HAZARD,
+  ArenaConfig, ArenaResult, FLOOR, WALL, HAZARD, GATE,
   mulberry32, neighbors4, neighbors8,
   generateCA, generateCAPadded, postProcessCA, stampMotif,
 } from './ca'
+import type { Gate, DestructibleBarrier, GateCondition } from './ca'
 import * as corridor from './corridor'
+import { createGate, createDestructibleBarrier } from './gate'
 
-export { FLOOR, WALL, HAZARD, DEMO_CONFIG } from './ca'
-export type { ArenaConfig, ArenaResult } from './ca'
+export { FLOOR, WALL, HAZARD, GATE, DEMO_CONFIG } from './ca'
+export type { ArenaConfig, ArenaResult, Gate, GateCondition, GateConfig, DestructibleBarrier } from './ca'
 
 // Tiny 12x12 grid with one L-shaped wall blob. No border walls.
 export function makeDebugArena(seed: number = 42): ArenaResult {
@@ -43,6 +45,172 @@ export function makeDebugArena(seed: number = 42): ArenaResult {
   }
 }
 
+export function generateHeightmap(
+  grid: Uint8Array,
+  zoneMap: Uint8Array,
+  worldSize: number,
+  zones: { height?: number }[],
+  seed: number,
+): Float32Array {
+  const height = new Float32Array(worldSize * worldSize)
+
+  for (let i = 0; i < grid.length; i++) {
+    const zone = zoneMap[i]
+    height[i] = zones[zone]?.height ?? 0
+  }
+
+  const blendRadius = 6
+  const blended = new Float32Array(height)
+  for (let z = 0; z < worldSize; z++) {
+    for (let x = 0; x < worldSize; x++) {
+      const idx = z * worldSize + x
+      const myZone = zoneMap[idx]
+      let nearBoundary = false
+
+      for (let dz = -blendRadius; dz <= blendRadius && !nearBoundary; dz++) {
+        for (let dx = -blendRadius; dx <= blendRadius && !nearBoundary; dx++) {
+          const nx = x + dx, nz = z + dz
+          if (nx < 0 || nx >= worldSize || nz < 0 || nz >= worldSize) continue
+          if (zoneMap[nz * worldSize + nx] !== myZone) nearBoundary = true
+        }
+      }
+      if (!nearBoundary) continue
+
+      let totalWeight = 0, totalHeight = 0
+      for (let dz = -blendRadius; dz <= blendRadius; dz++) {
+        for (let dx = -blendRadius; dx <= blendRadius; dx++) {
+          const nx = x + dx, nz = z + dz
+          if (nx < 0 || nx >= worldSize || nz < 0 || nz >= worldSize) continue
+          const dist = Math.sqrt(dx * dx + dz * dz)
+          if (dist > blendRadius) continue
+          const w = 1 - dist / blendRadius
+          totalWeight += w
+          totalHeight += height[nz * worldSize + nx] * w
+        }
+      }
+      if (totalWeight > 0) blended[idx] = totalHeight / totalWeight
+    }
+  }
+  height.set(blended)
+
+  for (let z = 0; z < worldSize; z++) {
+    for (let x = 0; x < worldSize; x++) {
+      const idx = z * worldSize + x
+      if (grid[idx] === WALL) continue
+      const r = mulberry32(x * 7919 + z * 104729 + seed + 33331)
+      height[idx] += (r() - 0.5) * 0.15
+    }
+  }
+
+  return height
+}
+
+export function buildSpeedGrid(
+  heightmap: Float32Array,
+  grid: Uint8Array,
+  worldSize: number,
+): Float32Array {
+  const speed = new Float32Array(worldSize * worldSize)
+  let maxH = 0
+  for (let i = 0; i < grid.length; i++) {
+    if (grid[i] !== WALL && heightmap[i] > maxH) maxH = heightmap[i]
+  }
+  if (maxH === 0) maxH = 1
+
+  for (let i = 0; i < grid.length; i++) {
+    speed[i] = grid[i] === WALL ? 0 : 1.0 - 0.3 * (heightmap[i] / maxH)
+  }
+  return speed
+}
+
+export function findLandmarkPosition(
+  grid: Uint8Array,
+  zoneMap: Uint8Array,
+  worldSize: number,
+  preferredZone: number,
+  totalZones: number,
+): { x: number; z: number } | null {
+  const zonesToTry = [preferredZone]
+  for (let z = 0; z < totalZones; z++) {
+    if (z !== preferredZone) zonesToTry.push(z)
+  }
+
+  for (const zone of zonesToTry) {
+    const visited = new Uint8Array(grid.length)
+    let best: number[] = []
+    for (let i = 0; i < grid.length; i++) {
+      if (visited[i] || grid[i] !== FLOOR || zoneMap[i] !== zone) continue
+      const region: number[] = []
+      const stack = [i]
+      visited[i] = 1
+      while (stack.length > 0) {
+        const idx = stack.pop()!
+        region.push(idx)
+        for (const n of neighbors4(idx, worldSize)) {
+          if (!visited[n] && grid[n] === FLOOR && zoneMap[n] === zone) {
+            visited[n] = 1
+            stack.push(n)
+          }
+        }
+      }
+      if (region.length > best.length) best = region
+    }
+    if (best.length > 0) {
+      let sx = 0, sz = 0
+      for (const idx of best) {
+        sx += idx % worldSize
+        sz += Math.floor(idx / worldSize)
+      }
+      return { x: sx / best.length + 0.5, z: sz / best.length + 0.5 }
+    }
+  }
+  return null
+}
+
+export function carveLandmarkClearing(
+  grid: Uint8Array,
+  worldSize: number,
+  cx: number,
+  cz: number,
+  radius: number,
+): void {
+  const r2 = radius * radius
+  for (let z = Math.max(0, Math.floor(cz - radius)); z <= Math.min(worldSize - 1, Math.ceil(cz + radius)); z++) {
+    for (let x = Math.max(0, Math.floor(cx - radius)); x <= Math.min(worldSize - 1, Math.ceil(cx + radius)); x++) {
+      const dx = x - cx, dz = z - cz
+      if (dx * dx + dz * dz <= r2) {
+        grid[z * worldSize + x] = FLOOR
+      }
+    }
+  }
+}
+
+function densityMultiplier(identity?: string): number {
+  switch (identity) {
+    case 'open': return 0.7
+    case 'dense': return 1.1
+    case 'hazard': return 0.85
+    default: return 1.0
+  }
+}
+
+export function sampleHeight(
+  heightmap: Float32Array, worldSize: number, wx: number, wz: number,
+): number {
+  const gx = Math.max(0, Math.min(worldSize - 1, wx))
+  const gz = Math.max(0, Math.min(worldSize - 1, wz))
+  const x0 = Math.floor(gx), z0 = Math.floor(gz)
+  const x1 = Math.min(x0 + 1, worldSize - 1)
+  const z1 = Math.min(z0 + 1, worldSize - 1)
+  const fx = gx - x0, fz = gz - z0
+  const h00 = heightmap[z0 * worldSize + x0]
+  const h10 = heightmap[z0 * worldSize + x1]
+  const h01 = heightmap[z1 * worldSize + x0]
+  const h11 = heightmap[z1 * worldSize + x1]
+  return h00 * (1 - fx) * (1 - fz) + h10 * fx * (1 - fz) +
+         h01 * (1 - fx) * fz + h11 * fx * fz
+}
+
 export function assembleArenaV2(config: ArenaConfig): ArenaResult {
   const { zoneGrid, zones, boundaries, corridors, chunkSize, caIterations, seed } = config
   const gridChunks = zoneGrid.length
@@ -68,7 +236,8 @@ export function assembleArenaV2(config: ArenaConfig): ArenaResult {
         }
       }
 
-      const chunk = generateCAPadded(chunkSize, zone.density, caIterations, (chunkSeed) | 0)
+      const effectiveDensity = zone.density * densityMultiplier(zone.tacticalIdentity)
+      const chunk = generateCAPadded(chunkSize, effectiveDensity, caIterations, (chunkSeed) | 0)
 
       // Copy chunk into world grid
       for (let lz = 0; lz < chunkSize; lz++) {
@@ -129,7 +298,7 @@ export function assembleArenaV2(config: ArenaConfig): ArenaResult {
               }
             }
           }
-        } else if (b.type === 'river' || b.type === 'hazard') {
+        } else if (b.type === 'river' || b.type === 'hazard' || b.type === 'elevation') {
           const bRng = mulberry32(seed + cz * 50 + cx)
           for (const [nz, nx] of [[cz - 1, cx], [cz + 1, cx], [cz, cx - 1], [cz, cx + 1]] as [number, number][]) {
             if (nz < 0 || nz >= gridChunks || nx < 0 || nx >= gridChunks) continue
@@ -150,7 +319,45 @@ export function assembleArenaV2(config: ArenaConfig): ArenaResult {
                 gz = isNeg ? oz : oz + chunkSize - 1
               }
               const idx = gz * worldSize + gx
-              if (!motifMask[idx]) grid[idx] = HAZARD
+              if (!motifMask[idx]) {
+                if (b.type === 'elevation') {
+                  grid[idx] = FLOOR
+                } else {
+                  grid[idx] = HAZARD
+                }
+              }
+            }
+          }
+        } else if (b.type === 'path') {
+          for (const [nz, nx] of [[cz - 1, cx], [cz + 1, cx], [cz, cx - 1], [cz, cx + 1]] as [number, number][]) {
+            if (nz < 0 || nz >= gridChunks || nx < 0 || nx >= gridChunks) continue
+            const neighborZone = zoneGrid[nz][nx]
+            if (neighborZone === thisZone) continue
+            if (neighborZone !== b.zoneA && neighborZone !== b.zoneB) continue
+
+            const isVertical = nz === cz
+            const isNeg = nx < cx || nz < cz
+            for (let i = 0; i < chunkSize; i++) {
+              let gx: number, gz: number
+              if (isVertical) {
+                gx = isNeg ? ox : ox + chunkSize - 1
+                gz = oz + i
+              } else {
+                gx = ox + i
+                gz = isNeg ? oz : oz + chunkSize - 1
+              }
+              // 2-cell wide floor strip through border
+              const idx = gz * worldSize + gx
+              if (!motifMask[idx]) grid[idx] = FLOOR
+              // Flanking walls
+              if (i > 0 && i < chunkSize - 1) {
+                const flankIdx1 = isVertical
+                  ? gz * worldSize + (gx + (isNeg ? 1 : -1))
+                  : (gz + (isNeg ? 1 : -1)) * worldSize + gx
+                if (flankIdx1 >= 0 && flankIdx1 < grid.length && !motifMask[flankIdx1]) {
+                  grid[flankIdx1] = WALL
+                }
+              }
             }
           }
         }
@@ -298,6 +505,39 @@ export function assembleArenaV2(config: ArenaConfig): ArenaResult {
     }
   }
 
+  const gates: Gate[] = []
+  const barriers: DestructibleBarrier[] = []
+  for (const b of boundaries) {
+    if (b.type === 'destructible') {
+      const barrier = createDestructibleBarrier(grid, zoneMap, worldSize, b.zoneA, b.zoneB, 100)
+      if (barrier) barriers.push(barrier)
+    }
+  }
+  if (config.gateConfigs) {
+    for (const gc of config.gateConfigs) {
+      const gate = createGate(grid, zoneMap, worldSize, gc.zoneA, gc.zoneB, gc.condition, gc.width)
+      if (gate) gates.push(gate)
+    }
+  }
+
+  // Landmark placement
+  const hasHeights = zones.some(z => (z.height ?? 0) > 0)
+  let landmarkResult: { x: number; z: number; zone: number } | null = null
+  const lmPos = findLandmarkPosition(grid, zoneMap, worldSize, 0, zones.length)
+  if (lmPos) {
+    carveLandmarkClearing(grid, worldSize, Math.floor(lmPos.x), Math.floor(lmPos.z), 10)
+    const lmZone = zoneMap[Math.floor(lmPos.z) * worldSize + Math.floor(lmPos.x)]
+    landmarkResult = { x: lmPos.x, z: lmPos.z, zone: lmZone }
+  }
+
+  // Heightmap and speed grid generation
+  let heightmap: Float32Array | undefined
+  let speedGrid: Float32Array | undefined
+  if (hasHeights) {
+    heightmap = generateHeightmap(grid, zoneMap, worldSize, zones, seed)
+    speedGrid = buildSpeedGrid(heightmap, grid, worldSize)
+  }
+
   let floorCount = 0
   let motifCells = 0
   for (let i = 0; i < grid.length; i++) {
@@ -310,6 +550,11 @@ export function assembleArenaV2(config: ArenaConfig): ArenaResult {
     zoneMap,
     motifMask,
     worldSize,
+    heightmap,
+    speedGrid,
+    gates,
+    barriers,
+    landmark: landmarkResult,
     stats: {
       worldSize,
       density: 1 - floorCount / (worldSize * worldSize),

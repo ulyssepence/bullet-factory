@@ -9,6 +9,8 @@ export type Entity = {
   zone: number
 }
 
+let rngState = mulberry32(12345)
+
 export function spawnEntities(
   grid: Uint8Array,
   zoneMap: Uint8Array,
@@ -46,8 +48,8 @@ export function updateEntities(
   dt: number,
 ) {
   for (const e of entities) {
-    if (Math.random() < 0.02) {
-      const angle = Math.random() * Math.PI * 2
+    if (rngState() < 0.02) {
+      const angle = rngState() * Math.PI * 2
       e.vx = Math.cos(angle) * 2
       e.vz = Math.sin(angle) * 2
     }
@@ -69,7 +71,7 @@ export function updateEntities(
       }
     }
 
-    e.vx = -e.vx + (Math.random() - 0.5) * 2
-    e.vz = -e.vz + (Math.random() - 0.5) * 2
+    e.vx = -e.vx + (rngState() - 0.5) * 2
+    e.vz = -e.vz + (rngState() - 0.5) * 2
   }
 }

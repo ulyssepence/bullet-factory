@@ -1,4 +1,4 @@
-import { FLOOR, WALL, mulberry32 } from './ca'
+import { FLOOR, WALL, GATE, mulberry32 } from './ca'
 
 export type PropData = {
   positions: Float32Array
@@ -29,7 +29,7 @@ export function scatterProps(
         const nx = x + dx
         const nz = z + dz
         if (nx < 0 || nx >= worldSize || nz < 0 || nz >= worldSize) continue
-        if (grid[nz * worldSize + nx] === WALL) {
+        if (grid[nz * worldSize + nx] === WALL || grid[nz * worldSize + nx] === GATE) {
           hasWallNeighbor = true
           break
         }

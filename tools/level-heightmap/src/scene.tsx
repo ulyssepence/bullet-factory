@@ -9,6 +9,7 @@ import { scatterProps } from '../../../template/src/level/props'
 import { GrayboxMaterial, getStyleConfig } from '../../../template/src/graybox-material'
 import { bakeNoiseTexture } from '../../../template/src/noise-texture'
 import { buildFloorGeoHM, buildWallGeoHM, buildWallFillGeoHM } from './terrain-geo-hm'
+import { extractRibbonUpperXZ } from '../../../template/src/level/terrain-geo'
 import { sampleHeight } from './heightmap'
 import { buildSpeedOverlayGeo, buildHeightmapOverlayGeo } from './speed'
 import { openGate } from './gate'
@@ -102,18 +103,21 @@ export function TerrainScene({
     }
 
     const ribbonParts: THREE.BufferGeometry[] = []
+    const ribbonUpperXZ: [number, number][] = []
     for (const zone of allZones) {
       const contours = zoneContours.get(zone) || []
       if (contours.length === 0) continue
       const zoneColor = wallColors[zone] || wallColors[0]
-      ribbonParts.push(buildWallGeoHM(contours, heightmap, worldSize, 1.2, 0, seed + zone, zoneColor))
+      const rGeo = buildWallGeoHM(contours, heightmap, worldSize, 1.2, 0, seed + zone, zoneColor)
+      ribbonUpperXZ.push(...extractRibbonUpperXZ(rGeo))
+      ribbonParts.push(rGeo)
     }
     const mergedRibbon = ribbonParts.length > 0
       ? mergeGeometries(ribbonParts, false)!
       : new THREE.BufferGeometry()
     for (const p of ribbonParts) p.dispose()
 
-    const mergedFill = buildWallFillGeoHM(grid, zoneMap, worldSize, heightmap, 1.2, wallColors)
+    const mergedFill = buildWallFillGeoHM(grid, zoneMap, worldSize, heightmap, 1.2, wallColors, ribbonUpperXZ)
 
     const pd = scatterProps(grid, worldSize, seed)
     for (let i = 0; i < pd.count; i++) {
@@ -184,6 +188,7 @@ export function TerrainScene({
   const entityMeshRef = useRef<THREE.InstancedMesh>(null!)
   useEffect(() => {
     entitiesRef.current = spawnEntities(grid, zoneMap, worldSize, entityCount, seed)
+    entityColorsSet.current = false
   }, [grid, zoneMap, worldSize, entityCount, seed, rebuildKey])
 
   // Chest state
@@ -206,6 +211,7 @@ export function TerrainScene({
   }, [grid, zoneMap, heightmap, worldSize, rebuildKey])
 
   const entityMatrix = useRef(new THREE.Matrix4())
+  const entityColorsSet = useRef(false)
 
   // Animation loop
   useFrame((_, dt) => {
@@ -233,10 +239,15 @@ export function TerrainScene({
         const y = sampleHeight(heightmap, worldSize, e.x, e.z) + 0.3
         m.makeTranslation(e.x, y, e.z)
         entityMeshRef.current.setMatrixAt(i, m)
-        entityMeshRef.current.setColorAt(i, ZONE_COLORS[e.zone] || ZONE_COLORS[0])
+        if (!entityColorsSet.current) {
+          entityMeshRef.current.setColorAt(i, ZONE_COLORS[e.zone] || ZONE_COLORS[0])
+        }
       }
       entityMeshRef.current.instanceMatrix.needsUpdate = true
-      if (entityMeshRef.current.instanceColor) entityMeshRef.current.instanceColor.needsUpdate = true
+      if (!entityColorsSet.current && entityMeshRef.current.instanceColor) {
+        entityMeshRef.current.instanceColor.needsUpdate = true
+        entityColorsSet.current = true
+      }
     }
     if (__PROFILE__) profile.stop('frame.entities')
 
@@ -256,17 +267,17 @@ export function TerrainScene({
 
   return (
     <group>
-      <mesh geometry={floorGeo} receiveShadow>
+      <mesh geometry={floorGeo}>
         <meshStandardMaterial vertexColors
           polygonOffset polygonOffsetFactor={2} polygonOffsetUnits={2} />
       </mesh>
 
-      <mesh geometry={wallRibbonGeo} castShadow receiveShadow>
+      <mesh geometry={wallRibbonGeo} castShadow>
         <GrayboxMaterial color="#ffffff" style="slate" vertexColors noiseTex={noiseTex} />
       </mesh>
-      <mesh geometry={wallFillGeo} receiveShadow>
-        <meshStandardMaterial vertexColors roughness={0.9}
-          polygonOffset polygonOffsetFactor={1} polygonOffsetUnits={1} />
+      <mesh geometry={wallFillGeo}>
+        <GrayboxMaterial color="#ffffff" style="slate" vertexColors noiseTex={noiseTex}
+          polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-1} />
       </mesh>
 
       {propData.count > 0 && (
@@ -358,9 +369,8 @@ export function TerrainScene({
       <directionalLight
         position={[10, 15, 10]}
         intensity={2.0}
-        castShadow
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
+               shadow-mapSize-width={512}
+        shadow-mapSize-height={512}
         shadow-camera-left={-80}
         shadow-camera-right={80}
         shadow-camera-top={80}

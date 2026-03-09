@@ -3,6 +3,8 @@ import * as grid from './grid'
 import * as nav from './navigation'
 import type { NavigationState } from './navigation'
 import type { SpatialHash } from './spatial'
+import type { ZoneDef } from '../level/ca'
+import { getZoneAtCell, getEnemyPool, getSpeedAt } from '../level/zones'
 
 export interface EnemyConfig {
   worldSize: number
@@ -30,7 +32,12 @@ export interface WaveDef {
 export interface EnemyTickState {
   player: { position: [number, number, number]; health: number; invulnTimer: number }
   enemies: Map<string, t.EnemyState>
-  level: { grid: Uint8Array }
+  level: {
+    grid: Uint8Array
+    zoneMap?: Uint8Array
+    speedGrid?: Float32Array
+    zones?: ZoneDef[]
+  }
   wave: t.WaveDirectorState
 }
 
@@ -66,12 +73,30 @@ export function tickWaves(
   dir.waveElapsed += dt
   const progress = Math.min(dir.waveElapsed / wave.duration, 1)
 
+  const { zoneMap, zones } = state.level
+
   for (const acc of dir.accumulators) {
     const target = Math.floor(progress * acc.count)
     while (acc.spawned < target) {
-      const pos = spawnPosition(state.player.position, state.level.grid, config.worldSize, config.spawnRadius)
+      let pos: [number, number, number] | null = null
+      let chosenType = acc.enemyType
+
+      for (let attempt = 0; attempt < 5; attempt++) {
+        pos = spawnPosition(state.player.position, state.level.grid, config.worldSize, config.spawnRadius)
+        if (!pos) continue
+
+        if (zoneMap && zones) {
+          const zone = getZoneAtCell(zoneMap, config.worldSize, pos[0], pos[2])
+          const pool = getEnemyPool(zones, zone)
+          if (pool.length > 0 && !pool.includes(acc.enemyType)) {
+            chosenType = pool[Math.floor(Math.random() * pool.length)]
+          }
+        }
+        break
+      }
+
       if (!pos) { acc.spawned++; continue }
-      const def = enemyDefs.find(e => e.type === acc.enemyType)
+      const def = enemyDefs.find(e => e.type === chosenType)
       if (!def) { acc.spawned++; continue }
       const id = genId()
       state.enemies.set(id, {
@@ -145,7 +170,10 @@ export function tickEnemies(
       }
     }
 
-    const speed = enemy.speed * dt
+    const speedMod = state.level.speedGrid
+      ? getSpeedAt(state.level.speedGrid, ws, enemy.position[0], enemy.position[2])
+      : 1
+    const speed = enemy.speed * speedMod * dt
     const nx = enemy.position[0] + mx * speed
     const nz = enemy.position[2] + mz * speed
 

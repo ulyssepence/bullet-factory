@@ -3,7 +3,7 @@ import * as THREE from 'three'
 import { ArenaResult, WALL, HAZARD } from '../../../template/src/level/generate'
 import type { ZoneDef } from '../../../template/src/level/ca'
 import { extractContours, smoothContour } from '../../../template/src/level/marching'
-import { buildWallGeo, buildFloorGeo, buildWallFillGeo } from '../../../template/src/level/terrain-geo'
+import { buildWallGeo, buildFloorGeo, buildWallFillGeo, extractRibbonUpperXZ } from '../../../template/src/level/terrain-geo'
 import { scatterProps } from '../../../template/src/level/props'
 import { GrayboxMaterial, SurfaceStyle } from '../../../template/src/graybox-material'
 
@@ -85,10 +85,16 @@ export function TerrainScene({
     for (let i = 0; i < grid.length; i++) {
       if (grid[i] === WALL) allZones.add(zoneMap[i])
     }
+    const ribbonUpperXZ: [number, number][] = []
+    const ribbonGeos: { zone: number; geo: THREE.BufferGeometry }[] = []
     for (const zone of allZones) {
       const contours = zoneContours.get(zone) || []
       const geo = contours.length > 0 ? buildWallGeo(contours, 1.2, 0.12, seed + zone) : new THREE.BufferGeometry()
-      const fillGeo = buildWallFillGeo(grid, zoneMap, worldSize, 1.2, zone)
+      ribbonUpperXZ.push(...extractRibbonUpperXZ(geo))
+      ribbonGeos.push({ zone, geo })
+    }
+    for (const { zone, geo } of ribbonGeos) {
+      const fillGeo = buildWallFillGeo(grid, zoneMap, worldSize, 1.2, zone, { ribbonUpperXZ })
       wg.push({ zone, geo, fillGeo })
     }
 

@@ -1,6 +1,6 @@
 import fc from 'fast-check'
 import * as THREE from 'three'
-import { FLOOR, WALL, DEMO_CONFIG } from '../../template/src/level/ca'
+import { FLOOR, WALL, GATE, DEMO_CONFIG } from '../../template/src/level/ca'
 import type { ArenaConfig } from '../../template/src/level/ca'
 import { buildWallFillGeo } from '../../template/src/level/terrain-geo'
 import { assembleArenaV2 } from '../../template/src/level/generate'
@@ -21,7 +21,6 @@ function checkFloorNotCovered(
   const raycaster = new THREE.Raycaster()
   const down = new THREE.Vector3(0, -1, 0)
 
-  // Sample interior floor cells (skip border)
   const margin = 6
   let floorHits = 0, floorTotal = 0
   for (let y = margin; y < worldSize - margin; y++) {

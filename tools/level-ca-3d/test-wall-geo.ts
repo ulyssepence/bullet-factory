@@ -1,4 +1,4 @@
-import { FLOOR, WALL, mulberry32, neighbors4, generateCA, generateCAPadded, DEMO_CONFIG } from '../../template/src/level/ca'
+import { FLOOR, WALL, GATE, mulberry32, neighbors4, generateCA, generateCAPadded, DEMO_CONFIG } from '../../template/src/level/ca'
 import { extractContours, smoothContour } from '../../template/src/level/marching'
 import { buildWallGeo, buildFloorGeo, buildWallFillGeo } from '../../template/src/level/terrain-geo'
 import { assembleArenaV2 } from '../../template/src/level/generate'
@@ -107,17 +107,18 @@ let failures = 0
   }
 }
 
-// --- Test 3: Wall fill height matches wall ribbon height ---
-// Wall fill should be at Y=height (same as wall ribbon top cap), not lower.
+// --- Test 3: Wall fill height matches wall ribbon height (with small offset) ---
+// Wall fill should be at Y≈height (slightly above ribbon top cap to avoid z-fighting).
 {
   const fillPos = wallFillGeo.getAttribute('position') as THREE.BufferAttribute
   let badHeights = 0
+  const fillTolerance = 0.03
   for (let i = 0; i < fillPos.count; i++) {
     const y = fillPos.getY(i)
-    if (Math.abs(y - height) > EPS && Math.abs(y) > EPS) {
+    if (Math.abs(y - height) > fillTolerance && Math.abs(y) > EPS) {
       badHeights++
       if (badHeights <= 3)
-        console.log(`  wall fill vertex ${i}: Y=${y.toFixed(4)} (expected ${height})`)
+        console.log(`  wall fill vertex ${i}: Y=${y.toFixed(4)} (expected ≈${height})`)
     }
   }
 
@@ -129,24 +130,40 @@ let failures = 0
   }
 }
 
-// --- Test 4: Wall fill covers only WALL cells (per-cell quad approach) ---
+// --- Test 4: Wall fill polygons originate from WALL/GATE cells ---
+// Fan-triangulated polygons share a common first vertex index (v0).
+// Group triangles by v0, compute polygon bbox center → source cell.
 {
   const fillPos = wallFillGeo.getAttribute('position') as THREE.BufferAttribute
   const fillIdx = wallFillGeo.getIndex()!
-  let nonWallQuads = 0
-  for (let t = 0; t < fillIdx.count; t += 6) {
-    const vi = fillIdx.getX(t)
-    const gx = Math.floor(fillPos.getX(vi))
-    const gz = Math.floor(fillPos.getZ(vi))
+  const fanGroups = new Map<number, Set<number>>()
+  for (let t = 0; t < fillIdx.count; t += 3) {
+    const v0 = fillIdx.getX(t)
+    if (!fanGroups.has(v0)) fanGroups.set(v0, new Set())
+    const group = fanGroups.get(v0)!
+    for (let k = 0; k < 3; k++) group.add(fillIdx.getX(t + k))
+  }
+  let nonWallPolys = 0
+  for (const [, verts] of fanGroups) {
+    let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity
+    for (const vi of verts) {
+      minX = Math.min(minX, fillPos.getX(vi))
+      maxX = Math.max(maxX, fillPos.getX(vi))
+      minZ = Math.min(minZ, fillPos.getZ(vi))
+      maxZ = Math.max(maxZ, fillPos.getZ(vi))
+    }
+    const cx = (minX + maxX) / 2, cz = (minZ + maxZ) / 2
+    const gx = Math.floor(cx), gz = Math.floor(cz)
     if (gx >= 0 && gx < worldSize && gz >= 0 && gz < worldSize) {
-      if (grid[gz * worldSize + gx] !== WALL) nonWallQuads++
+      const c = grid[gz * worldSize + gx]
+      if (c !== WALL && c !== GATE) nonWallPolys++
     }
   }
-  if (nonWallQuads > 0) {
-    console.log(`FAIL: ${nonWallQuads} fill quads cover non-WALL cells`)
+  if (nonWallPolys > 0) {
+    console.log(`FAIL: ${nonWallPolys} fill polygons centered on non-WALL cells`)
     failures++
   } else {
-    console.log('PASS: wall fill covers only WALL cells')
+    console.log('PASS: wall fill polygon centers correspond to WALL/GATE cells')
   }
 }
 
@@ -188,9 +205,9 @@ let failures = 0
 
 // --- Test 6a: Wall ribbon seam vertices meet for closed contours ---
 // buildWallGeo emits 3 quads (12 verts) per segment: outer face, inner face, top cap.
-// Top cap vertex order: outer[i], outer[i+1], inner[i+1], inner[i].
-// For contours whose raw source is a closed loop, segment 0's inner[0] should
-// coincide with the last segment's inner[N-1]. We check inner (no jitter).
+// Inner face vertex order per segment: (ix1,0,iz1), (ix0,0,iz0), (ix0,h,iz0), (ix1,h,iz1).
+// For contours whose raw source is a closed loop, segment 0's inner[0] at height
+// should coincide with the last segment's inner[N-1] at height.
 // We use raw contours to identify loops since smoothing breaks the closure.
 {
   const pos = wallGeo.getAttribute('position') as THREE.BufferAttribute
@@ -203,24 +220,22 @@ let failures = 0
     const n = sm.length / 2
     if (n < 2) continue
 
-    // Must match buildWallGeo's loop detection on the smoothed contour
-    // (this determines the actual vertex layout emitted)
     const geoIsLoop = Math.abs(sm[0] - sm[(n - 1) * 2]) < 0.01 &&
                       Math.abs(sm[1] - sm[(n - 1) * 2 + 1]) < 0.01
     const segments = n - 1
     const totalVerts = segments * 12 + (geoIsLoop ? 0 : 8)
 
-    // Was the raw contour a closed loop?
     const rawN = raw.length / 2
     const rawIsLoop = rawN >= 3 &&
       Math.abs(raw[0] - raw[(rawN - 1) * 2]) < 0.01 &&
       Math.abs(raw[1] - raw[(rawN - 1) * 2 + 1]) < 0.01
 
     if (rawIsLoop && segments >= 2) {
-      // Segment 0 top cap: vertOffset+8..+11 → outer[0], outer[1], inner[1], inner[0]
-      const inner0 = vertOffset + 11
-      // Last segment top cap: vertOffset+(segments-1)*12+8..+11
-      const innerLast = vertOffset + (segments - 1) * 12 + 10
+      // Segment 0 inner face: verts 4..7 → (ix1,0,iz1),(ix0,0,iz0),(ix0,h,iz0),(ix1,h,iz1)
+      // inner[0] at height = vert 6 of segment 0
+      const inner0 = vertOffset + 6
+      // Last segment inner face: inner[N-1] at height = vert 7 of last segment
+      const innerLast = vertOffset + (segments - 1) * 12 + 7
 
       const dist = Math.hypot(
         pos.getX(inner0) - pos.getX(innerLast),
