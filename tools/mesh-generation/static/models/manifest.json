@@ -1,5 +1,115 @@
 [
   {
+    "name": "bandit-runner",
+    "base": "bandit-runner.glb",
+    "rigged": "bandit-runner-rigged.glb",
+    "walk": "bandit-runner-walk.glb",
+    "run": "bandit-runner-run.glb",
+    "zones": {
+      "zones": [
+        {
+          "name": "hat",
+          "debugColor": "#ff0000",
+          "style": "slate",
+          "color": "#C8A882",
+          "height": [
+            0.88,
+            1
+          ]
+        },
+        {
+          "name": "head",
+          "bones": [
+            "neck",
+            "Head",
+            "head_end",
+            "headfront"
+          ],
+          "debugColor": "#ff8800",
+          "style": "obsidian",
+          "color": "#DDD0BB",
+          "height": [
+            0.73,
+            0.87
+          ],
+          "absX": [
+            0,
+            0.5
+          ]
+        },
+        {
+          "name": "arms",
+          "bones": [
+            "LeftShoulder",
+            "LeftArm",
+            "LeftForeArm",
+            "LeftHand",
+            "RightShoulder",
+            "RightArm",
+            "RightForeArm",
+            "RightHand"
+          ],
+          "debugColor": "#00ff00",
+          "style": "cobblestone",
+          "color": "#CC9966",
+          "height": [
+            0.47,
+            0.83
+          ],
+          "absX": [
+            0.5,
+            1
+          ]
+        },
+        {
+          "name": "torso",
+          "bones": [
+            "Hips",
+            "Spine",
+            "Spine01",
+            "Spine02"
+          ],
+          "debugColor": "#0000ff",
+          "style": "crystalline",
+          "color": "#DDBB88",
+          "height": [
+            0.47,
+            0.83
+          ],
+          "absX": [
+            0,
+            0.5
+          ]
+        },
+        {
+          "name": "legs",
+          "bones": [
+            "LeftUpLeg",
+            "LeftLeg",
+            "LeftFoot",
+            "LeftToeBase",
+            "RightUpLeg",
+            "RightLeg",
+            "RightFoot",
+            "RightToeBase"
+          ],
+          "debugColor": "#ffff00",
+          "style": "cobblestone",
+          "color": "#BBA080",
+          "height": [
+            0,
+            0.47
+          ]
+        }
+      ],
+      "fallback": {
+        "debugColor": "#888888",
+        "style": "dirt",
+        "color": "#AA9070"
+      }
+    }
+  },
+  {
     "name": "cowboy-bot",
     "base": "cowboy-bot.glb",
     "rigged": "cowboy-bot-rigged.glb",
@@ -110,23 +220,21 @@
     }
   },
   {
-    "name": "bandit-runner",
-    "base": "bandit-runner.glb",
-    "rigged": "bandit-runner-rigged.glb",
-    "walk": "bandit-runner-walk.glb",
-    "run": "bandit-runner-run.glb",
+    "name": "abandoned_well",
+    "base": "abandoned_well.glb"
+  },
+  {
+    "name": "alien_egg",
+    "base": "alien_egg.glb"
+  },
+  {
+    "name": "broodmother",
+    "base": "broodmother.glb",
+    "rigged": "broodmother-rigged.glb",
+    "walk": "broodmother-walk.glb",
+    "run": "broodmother-run.glb",
     "zones": {
       "zones": [
-        {
-          "name": "hat",
-          "debugColor": "#ff0000",
-          "style": "slate",
-          "color": "#C8A882",
-          "height": [
-            0.88,
-            1
-          ]
-        },
         {
           "name": "head",
           "bones": [
@@ -135,17 +243,9 @@
             "head_end",
             "headfront"
           ],
-          "debugColor": "#ff8800",
-          "style": "obsidian",
-          "color": "#DDD0BB",
-          "height": [
-            0.73,
-            0.87
-          ],
-          "absX": [
-            0,
-            0.5
-          ]
+          "debugColor": "#cf00c5",
+          "style": "organic",
+          "color": "#cf00c5"
         },
         {
           "name": "arms",
@@ -159,17 +259,9 @@
             "RightForeArm",
             "RightHand"
           ],
-          "debugColor": "#00ff00",
-          "style": "cobblestone",
-          "color": "#CC9966",
-          "height": [
-            0.47,
-            0.83
-          ],
-          "absX": [
-            0.5,
-            1
-          ]
+          "debugColor": "#8774ff",
+          "style": "organic",
+          "color": "#8774ff"
         },
         {
           "name": "torso",
@@ -179,17 +271,9 @@
             "Spine01",
             "Spine02"
           ],
-          "debugColor": "#0000ff",
-          "style": "crystalline",
-          "color": "#DDBB88",
-          "height": [
-            0.47,
-            0.83
-          ],
-          "absX": [
-            0,
-            0.5
-          ]
+          "debugColor": "#ae19f8",
+          "style": "organic",
+          "color": "#ae19f8"
         },
         {
           "name": "legs",
@@ -203,20 +287,1570 @@
             "RightFoot",
             "RightToeBase"
           ],
-          "debugColor": "#ffff00",
-          "style": "cobblestone",
-          "color": "#BBA080",
-          "height": [
-            0,
-            0.47
-          ]
+          "debugColor": "#005e8d",
+          "style": "rough",
+          "color": "#005e8d"
         }
       ],
       "fallback": {
-        "debugColor": "#888888",
-        "style": "dirt",
-        "color": "#AA9070"
+        "debugColor": "#ae19f8",
+        "style": "organic",
+        "color": "#ae19f8"
       }
     }
+  },
+  {
+    "name": "bug_spray_stream",
+    "base": "bug_spray_stream.glb"
+  },
+  {
+    "name": "fence",
+    "base": "fence.glb"
+  },
+  {
+    "name": "fire_hydrant",
+    "base": "fire_hydrant.glb"
+  },
+  {
+    "name": "firecracker",
+    "base": "firecracker.glb"
+  },
+  {
+    "name": "flashlight_beam",
+    "base": "flashlight_beam.glb"
+  },
+  {
+    "name": "health_pickup",
+    "base": "health_pickup.glb"
+  },
+  {
+    "name": "husk",
+    "base": "husk.glb",
+    "rigged": "husk-rigged.glb",
+    "walk": "husk-walk.glb",
+    "run": "husk-run.glb",
+    "zones": {
+      "zones": [
+        {
+          "name": "head",
+          "bones": [
+            "neck",
+            "Head",
+            "head_end",
+            "headfront"
+          ],
+          "debugColor": "#ef005e",
+          "style": "worn",
+          "color": "#ef005e"
+        },
+        {
+          "name": "arms",
+          "bones": [
+            "LeftShoulder",
+            "LeftArm",
+            "LeftForeArm",
+            "LeftHand",
+            "RightShoulder",
+            "RightArm",
+            "RightForeArm",
+            "RightHand"
+          ],
+          "debugColor": "#e5008c",
+          "style": "worn",
+          "color": "#e5008c"
+        },
+        {
+          "name": "torso",
+          "bones": [
+            "Hips",
+            "Spine",
+            "Spine01",
+            "Spine02"
+          ],
+          "debugColor": "#005e8d",
+          "style": "worn",
+          "color": "#005e8d"
+        },
+        {
+          "name": "legs",
+          "bones": [
+            "LeftUpLeg",
+            "LeftLeg",
+            "LeftFoot",
+            "LeftToeBase",
+            "RightUpLeg",
+            "RightLeg",
+            "RightFoot",
+            "RightToeBase"
+          ],
+          "debugColor": "#00025f",
+          "style": "rough",
+          "color": "#00025f"
+        }
+      ],
+      "fallback": {
+        "debugColor": "#ef005e",
+        "style": "worn",
+        "color": "#ef005e"
+      }
+    }
+  },
+  {
+    "name": "magnet",
+    "base": "magnet.glb"
+  },
+  {
+    "name": "mailbox",
+    "base": "mailbox.glb"
+  },
+  {
+    "name": "morgan",
+    "base": "morgan.glb",
+    "rigged": "morgan-rigged.glb",
+    "walk": "morgan-walk.glb",
+    "run": "morgan-run.glb",
+    "zones": {
+      "zones": [
+        {
+          "name": "head",
+          "bones": [
+            "neck",
+            "Head",
+            "head_end",
+            "headfront"
+          ],
+          "debugColor": "#32cff8",
+          "style": "smooth",
+          "color": "#32cff8"
+        },
+        {
+          "name": "arms",
+          "bones": [
+            "LeftShoulder",
+            "LeftArm",
+            "LeftForeArm",
+            "LeftHand",
+            "RightShoulder",
+            "RightArm",
+            "RightForeArm",
+            "RightHand"
+          ],
+          "debugColor": "#0eacc6",
+          "style": "worn",
+          "color": "#0eacc6"
+        },
+        {
+          "name": "torso",
+          "bones": [
+            "Hips",
+            "Spine",
+            "Spine01",
+            "Spine02"
+          ],
+          "debugColor": "#005e8d",
+          "style": "worn",
+          "color": "#005e8d"
+        },
+        {
+          "name": "legs",
+          "bones": [
+            "LeftUpLeg",
+            "LeftLeg",
+            "LeftFoot",
+            "LeftToeBase",
+            "RightUpLeg",
+            "RightLeg",
+            "RightFoot",
+            "RightToeBase"
+          ],
+          "debugColor": "#00025f",
+          "style": "rough",
+          "color": "#00025f"
+        }
+      ],
+      "fallback": {
+        "debugColor": "#0eacc6",
+        "style": "worn",
+        "color": "#0eacc6"
+      }
+    }
+  },
+  {
+    "name": "phone_booth",
+    "base": "phone_booth.glb"
+  },
+  {
+    "name": "playground",
+    "base": "playground.glb"
+  },
+  {
+    "name": "riley",
+    "base": "riley.glb",
+    "rigged": "riley-rigged.glb",
+    "walk": "riley-walk.glb",
+    "run": "riley-run.glb",
+    "zones": {
+      "zones": [
+        {
+          "name": "head",
+          "bones": [
+            "neck",
+            "Head",
+            "head_end",
+            "headfront"
+          ],
+          "debugColor": "#32cff8",
+          "style": "smooth",
+          "color": "#32cff8"
+        },
+        {
+          "name": "arms",
+          "bones": [
+            "LeftShoulder",
+            "LeftArm",
+            "LeftForeArm",
+            "LeftHand",
+            "RightShoulder",
+            "RightArm",
+            "RightForeArm",
+            "RightHand"
+          ],
+          "debugColor": "#0eacc6",
+          "style": "worn",
+          "color": "#0eacc6"
+        },
+        {
+          "name": "torso",
+          "bones": [
+            "Hips",
+            "Spine",
+            "Spine01",
+            "Spine02"
+          ],
+          "debugColor": "#005e8d",
+          "style": "worn",
+          "color": "#005e8d"
+        },
+        {
+          "name": "legs",
+          "bones": [
+            "LeftUpLeg",
+            "LeftLeg",
+            "LeftFoot",
+            "LeftToeBase",
+            "RightUpLeg",
+            "RightLeg",
+            "RightFoot",
+            "RightToeBase"
+          ],
+          "debugColor": "#00025f",
+          "style": "rough",
+          "color": "#00025f"
+        }
+      ],
+      "fallback": {
+        "debugColor": "#0eacc6",
+        "style": "worn",
+        "color": "#0eacc6"
+      }
+    }
+  },
+  {
+    "name": "rosary",
+    "base": "rosary.glb"
+  },
+  {
+    "name": "sam",
+    "base": "sam.glb",
+    "rigged": "sam-rigged.glb",
+    "walk": "sam-walk.glb",
+    "run": "sam-run.glb",
+    "zones": {
+      "zones": [
+        {
+          "name": "head",
+          "bones": [
+            "neck",
+            "Head",
+            "head_end",
+            "headfront"
+          ],
+          "debugColor": "#32cff8",
+          "style": "smooth",
+          "color": "#32cff8"
+        },
+        {
+          "name": "arms",
+          "bones": [
+            "LeftShoulder",
+            "LeftArm",
+            "LeftForeArm",
+            "LeftHand",
+            "RightShoulder",
+            "RightArm",
+            "RightForeArm",
+            "RightHand"
+          ],
+          "debugColor": "#0eacc6",
+          "style": "worn",
+          "color": "#0eacc6"
+        },
+        {
+          "name": "torso",
+          "bones": [
+            "Hips",
+            "Spine",
+            "Spine01",
+            "Spine02"
+          ],
+          "debugColor": "#005e8d",
+          "style": "worn",
+          "color": "#005e8d"
+        },
+        {
+          "name": "legs",
+          "bones": [
+            "LeftUpLeg",
+            "LeftLeg",
+            "LeftFoot",
+            "LeftToeBase",
+            "RightUpLeg",
+            "RightLeg",
+            "RightFoot",
+            "RightToeBase"
+          ],
+          "debugColor": "#00025f",
+          "style": "rough",
+          "color": "#00025f"
+        }
+      ],
+      "fallback": {
+        "debugColor": "#0eacc6",
+        "style": "worn",
+        "color": "#0eacc6"
+      }
+    }
+  },
+  {
+    "name": "shed_skin",
+    "base": "shed_skin.glb",
+    "rigged": "shed_skin-rigged.glb",
+    "walk": "shed_skin-walk.glb",
+    "run": "shed_skin-run.glb",
+    "zones": {
+      "zones": [
+        {
+          "name": "head",
+          "bones": [
+            "neck",
+            "Head",
+            "head_end",
+            "headfront"
+          ],
+          "debugColor": "#ae19f8",
+          "style": "organic",
+          "color": "#ae19f8"
+        },
+        {
+          "name": "arms",
+          "bones": [
+            "LeftShoulder",
+            "LeftArm",
+            "LeftForeArm",
+            "LeftHand",
+            "RightShoulder",
+            "RightArm",
+            "RightForeArm",
+            "RightHand"
+          ],
+          "debugColor": "#8774ff",
+          "style": "organic",
+          "color": "#8774ff"
+        },
+        {
+          "name": "torso",
+          "bones": [
+            "Hips",
+            "Spine",
+            "Spine01",
+            "Spine02"
+          ],
+          "debugColor": "#cf00c5",
+          "style": "organic",
+          "color": "#cf00c5"
+        },
+        {
+          "name": "legs",
+          "bones": [
+            "LeftUpLeg",
+            "LeftLeg",
+            "LeftFoot",
+            "LeftToeBase",
+            "RightUpLeg",
+            "RightLeg",
+            "RightFoot",
+            "RightToeBase"
+          ],
+          "debugColor": "#8774ff",
+          "style": "organic",
+          "color": "#8774ff"
+        }
+      ],
+      "fallback": {
+        "debugColor": "#8774ff",
+        "style": "organic",
+        "color": "#8774ff"
+      }
+    }
+  },
+  {
+    "name": "skittering",
+    "base": "skittering.glb",
+    "rigged": "skittering-rigged.glb",
+    "walk": "skittering-walk.glb",
+    "run": "skittering-run.glb",
+    "zones": {
+      "zones": [
+        {
+          "name": "head",
+          "bones": [
+            "neck",
+            "Head",
+            "head_end",
+            "headfront"
+          ],
+          "debugColor": "#ef005e",
+          "style": "smooth",
+          "color": "#ef005e"
+        },
+        {
+          "name": "arms",
+          "bones": [
+            "LeftShoulder",
+            "LeftArm",
+            "LeftForeArm",
+            "LeftHand",
+            "RightShoulder",
+            "RightArm",
+            "RightForeArm",
+            "RightHand"
+          ],
+          "debugColor": "#e5008c",
+          "style": "organic",
+          "color": "#e5008c"
+        },
+        {
+          "name": "torso",
+          "bones": [
+            "Hips",
+            "Spine",
+            "Spine01",
+            "Spine02"
+          ],
+          "debugColor": "#cf00c5",
+          "style": "organic",
+          "color": "#cf00c5"
+        },
+        {
+          "name": "legs",
+          "bones": [
+            "LeftUpLeg",
+            "LeftLeg",
+            "LeftFoot",
+            "LeftToeBase",
+            "RightUpLeg",
+            "RightLeg",
+            "RightFoot",
+            "RightToeBase"
+          ],
+          "debugColor": "#e5008c",
+          "style": "organic",
+          "color": "#e5008c"
+        }
+      ],
+      "fallback": {
+        "debugColor": "#e5008c",
+        "style": "organic",
+        "color": "#e5008c"
+      }
+    }
+  },
+  {
+    "name": "slingshot_rock",
+    "base": "slingshot_rock.glb"
+  },
+  {
+    "name": "spinning_backpack",
+    "base": "spinning_backpack.glb"
+  },
+  {
+    "name": "spore_cloud",
+    "base": "spore_cloud.glb"
+  },
+  {
+    "name": "spore_spitter",
+    "base": "spore_spitter.glb",
+    "rigged": "spore_spitter-rigged.glb",
+    "walk": "spore_spitter-walk.glb",
+    "run": "spore_spitter-run.glb",
+    "zones": {
+      "zones": [
+        {
+          "name": "head",
+          "bones": [
+            "neck",
+            "Head",
+            "head_end",
+            "headfront"
+          ],
+          "debugColor": "#e5008c",
+          "style": "organic",
+          "color": "#e5008c"
+        },
+        {
+          "name": "arms",
+          "bones": [
+            "LeftShoulder",
+            "LeftArm",
+            "LeftForeArm",
+            "LeftHand",
+            "RightShoulder",
+            "RightArm",
+            "RightForeArm",
+            "RightHand"
+          ],
+          "debugColor": "#cf00c5",
+          "style": "organic",
+          "color": "#cf00c5"
+        },
+        {
+          "name": "torso",
+          "bones": [
+            "Hips",
+            "Spine",
+            "Spine01",
+            "Spine02"
+          ],
+          "debugColor": "#ae19f8",
+          "style": "organic",
+          "color": "#ae19f8"
+        },
+        {
+          "name": "legs",
+          "bones": [
+            "LeftUpLeg",
+            "LeftLeg",
+            "LeftFoot",
+            "LeftToeBase",
+            "RightUpLeg",
+            "RightLeg",
+            "RightFoot",
+            "RightToeBase"
+          ],
+          "debugColor": "#005e8d",
+          "style": "rough",
+          "color": "#005e8d"
+        }
+      ],
+      "fallback": {
+        "debugColor": "#cf00c5",
+        "style": "organic",
+        "color": "#cf00c5"
+      }
+    }
+  },
+  {
+    "name": "streetlamp",
+    "base": "streetlamp.glb"
+  },
+  {
+    "name": "the_elder",
+    "base": "the_elder.glb",
+    "rigged": "the_elder-rigged.glb",
+    "walk": "the_elder-walk.glb",
+    "run": "the_elder-run.glb",
+    "zones": {
+      "zones": [
+        {
+          "name": "head",
+          "bones": [
+            "neck",
+            "Head",
+            "head_end",
+            "headfront"
+          ],
+          "debugColor": "#32cff8",
+          "style": "crystalline",
+          "color": "#32cff8"
+        },
+        {
+          "name": "arms",
+          "bones": [
+            "LeftShoulder",
+            "LeftArm",
+            "LeftForeArm",
+            "LeftHand",
+            "RightShoulder",
+            "RightArm",
+            "RightForeArm",
+            "RightHand"
+          ],
+          "debugColor": "#ae19f8",
+          "style": "organic",
+          "color": "#ae19f8"
+        },
+        {
+          "name": "torso",
+          "bones": [
+            "Hips",
+            "Spine",
+            "Spine01",
+            "Spine02"
+          ],
+          "debugColor": "#005e8d",
+          "style": "worn",
+          "color": "#005e8d"
+        },
+        {
+          "name": "legs",
+          "bones": [
+            "LeftUpLeg",
+            "LeftLeg",
+            "LeftFoot",
+            "LeftToeBase",
+            "RightUpLeg",
+            "RightLeg",
+            "RightFoot",
+            "RightToeBase"
+          ],
+          "debugColor": "#00025f",
+          "style": "rough",
+          "color": "#00025f"
+        }
+      ],
+      "fallback": {
+        "debugColor": "#005e8d",
+        "style": "worn",
+        "color": "#005e8d"
+      }
+    }
+  },
+  {
+    "name": "tool_shed",
+    "base": "tool_shed.glb"
+  },
+  {
+    "name": "townsfolk",
+    "base": "townsfolk.glb",
+    "rigged": "townsfolk-rigged.glb",
+    "walk": "townsfolk-walk.glb",
+    "run": "townsfolk-run.glb",
+    "zones": {
+      "zones": [
+        {
+          "name": "head",
+          "bones": [
+            "neck",
+            "Head",
+            "head_end",
+            "headfront"
+          ],
+          "debugColor": "#32cff8",
+          "style": "smooth",
+          "color": "#32cff8"
+        },
+        {
+          "name": "arms",
+          "bones": [
+            "LeftShoulder",
+            "LeftArm",
+            "LeftForeArm",
+            "LeftHand",
+            "RightShoulder",
+            "RightArm",
+            "RightForeArm",
+            "RightHand"
+          ],
+          "debugColor": "#005e8d",
+          "style": "worn",
+          "color": "#005e8d"
+        },
+        {
+          "name": "torso",
+          "bones": [
+            "Hips",
+            "Spine",
+            "Spine01",
+            "Spine02"
+          ],
+          "debugColor": "#5cb9ff",
+          "style": "rough",
+          "color": "#5cb9ff"
+        },
+        {
+          "name": "legs",
+          "bones": [
+            "LeftUpLeg",
+            "LeftLeg",
+            "LeftFoot",
+            "LeftToeBase",
+            "RightUpLeg",
+            "RightLeg",
+            "RightFoot",
+            "RightToeBase"
+          ],
+          "debugColor": "#00025f",
+          "style": "rough",
+          "color": "#00025f"
+        }
+      ],
+      "fallback": {
+        "debugColor": "#005e8d",
+        "style": "rough",
+        "color": "#005e8d"
+      }
+    }
+  },
+  {
+    "name": "trash_can",
+    "base": "trash_can.glb"
+  },
+  {
+    "name": "wall",
+    "base": "wall.glb"
+  },
+  {
+    "name": "xp_gem",
+    "base": "xp_gem.glb"
+  },
+  {
+    "name": "armor-rack",
+    "base": "armor-rack.glb"
+  },
+  {
+    "name": "bamboo-cluster",
+    "base": "bamboo-cluster.glb"
+  },
+  {
+    "name": "broken-cart",
+    "base": "broken-cart.glb"
+  },
+  {
+    "name": "fallen-torii",
+    "base": "fallen-torii.glb"
+  },
+  {
+    "name": "grave-marker",
+    "base": "grave-marker.glb"
+  },
+  {
+    "name": "health-pickup",
+    "base": "health-pickup.glb"
+  },
+  {
+    "name": "katana-slash",
+    "base": "katana-slash.glb"
+  },
+  {
+    "name": "lantern",
+    "base": "lantern.glb"
+  },
+  {
+    "name": "magnet-pickup",
+    "base": "magnet-pickup.glb"
+  },
+  {
+    "name": "naginata",
+    "base": "naginata.glb"
+  },
+  {
+    "name": "ofuda",
+    "base": "ofuda.glb"
+  },
+  {
+    "name": "oni-shogun",
+    "base": "oni-shogun.glb",
+    "rigged": "oni-shogun-rigged.glb",
+    "walk": "oni-shogun-walk.glb",
+    "run": "oni-shogun-run.glb",
+    "zones": {
+      "zones": [
+        {
+          "name": "head",
+          "bones": [
+            "neck",
+            "Head",
+            "head_end",
+            "headfront"
+          ],
+          "debugColor": "#22D1EE",
+          "style": "metallic",
+          "color": "#22D1EE"
+        },
+        {
+          "name": "arms",
+          "bones": [
+            "LeftShoulder",
+            "LeftArm",
+            "LeftForeArm",
+            "LeftHand",
+            "RightShoulder",
+            "RightArm",
+            "RightForeArm",
+            "RightHand"
+          ],
+          "debugColor": "#4A4E69",
+          "style": "metallic",
+          "color": "#4A4E69"
+        },
+        {
+          "name": "torso",
+          "bones": [
+            "Hips",
+            "Spine",
+            "Spine01",
+            "Spine02",
+            "Spine1"
+          ],
+          "debugColor": "#1A1A2E",
+          "style": "metallic",
+          "color": "#1A1A2E"
+        },
+        {
+          "name": "legs",
+          "bones": [
+            "LeftUpLeg",
+            "LeftLeg",
+            "LeftFoot",
+            "LeftToeBase",
+            "RightUpLeg",
+            "RightLeg",
+            "RightFoot",
+            "RightToeBase"
+          ],
+          "debugColor": "#1A1A2E",
+          "style": "worn",
+          "color": "#1A1A2E"
+        }
+      ],
+      "fallback": {
+        "debugColor": "#1A1A2E",
+        "style": "metallic",
+        "color": "#1A1A2E"
+      }
+    }
+  },
+  {
+    "name": "onmyoji",
+    "base": "onmyoji.glb",
+    "rigged": "onmyoji-rigged.glb",
+    "walk": "onmyoji-walk.glb",
+    "run": "onmyoji-run.glb",
+    "zones": {
+      "zones": [
+        {
+          "name": "head",
+          "bones": [
+            "neck",
+            "Head",
+            "head_end",
+            "headfront"
+          ],
+          "debugColor": "#F2E9E4",
+          "style": "smooth",
+          "color": "#F2E9E4"
+        },
+        {
+          "name": "arms",
+          "bones": [
+            "LeftShoulder",
+            "LeftArm",
+            "LeftForeArm",
+            "LeftHand",
+            "RightShoulder",
+            "RightArm",
+            "RightForeArm",
+            "RightHand"
+          ],
+          "debugColor": "#F2E9E4",
+          "style": "organic",
+          "color": "#F2E9E4"
+        },
+        {
+          "name": "torso",
+          "bones": [
+            "Hips",
+            "Spine",
+            "Spine01",
+            "Spine02",
+            "Spine1"
+          ],
+          "debugColor": "#22D1EE",
+          "style": "smooth",
+          "color": "#22D1EE"
+        },
+        {
+          "name": "legs",
+          "bones": [
+            "LeftUpLeg",
+            "LeftLeg",
+            "LeftFoot",
+            "LeftToeBase",
+            "RightUpLeg",
+            "RightLeg",
+            "RightFoot",
+            "RightToeBase"
+          ],
+          "debugColor": "#4A4E69",
+          "style": "organic",
+          "color": "#4A4E69"
+        }
+      ],
+      "fallback": {
+        "debugColor": "#F2E9E4",
+        "style": "organic",
+        "color": "#F2E9E4"
+      }
+    }
+  },
+  {
+    "name": "possessed-archer",
+    "base": "possessed-archer.glb",
+    "rigged": "possessed-archer-rigged.glb",
+    "walk": "possessed-archer-walk.glb",
+    "run": "possessed-archer-run.glb",
+    "zones": {
+      "zones": [
+        {
+          "name": "head",
+          "bones": [
+            "neck",
+            "Head",
+            "head_end",
+            "headfront"
+          ],
+          "debugColor": "#EDAE49",
+          "style": "smooth",
+          "color": "#EDAE49"
+        },
+        {
+          "name": "arms",
+          "bones": [
+            "LeftShoulder",
+            "LeftArm",
+            "LeftForeArm",
+            "LeftHand",
+            "RightShoulder",
+            "RightArm",
+            "RightForeArm",
+            "RightHand"
+          ],
+          "debugColor": "#4A4E69",
+          "style": "worn",
+          "color": "#4A4E69"
+        },
+        {
+          "name": "torso",
+          "bones": [
+            "Hips",
+            "Spine",
+            "Spine01",
+            "Spine02",
+            "Spine1"
+          ],
+          "debugColor": "#EDAE49",
+          "style": "organic",
+          "color": "#EDAE49"
+        },
+        {
+          "name": "legs",
+          "bones": [
+            "LeftUpLeg",
+            "LeftLeg",
+            "LeftFoot",
+            "LeftToeBase",
+            "RightUpLeg",
+            "RightLeg",
+            "RightFoot",
+            "RightToeBase"
+          ],
+          "debugColor": "#1A1A2E",
+          "style": "rough",
+          "color": "#1A1A2E"
+        }
+      ],
+      "fallback": {
+        "debugColor": "#EDAE49",
+        "style": "organic",
+        "color": "#EDAE49"
+      }
+    }
+  },
+  {
+    "name": "possessed-ashigaru",
+    "base": "possessed-ashigaru.glb",
+    "rigged": "possessed-ashigaru-rigged.glb",
+    "walk": "possessed-ashigaru-walk.glb",
+    "run": "possessed-ashigaru-run.glb",
+    "zones": {
+      "zones": [
+        {
+          "name": "head",
+          "bones": [
+            "neck",
+            "Head",
+            "head_end",
+            "headfront"
+          ],
+          "debugColor": "#4EC96D",
+          "style": "smooth",
+          "color": "#4EC96D"
+        },
+        {
+          "name": "arms",
+          "bones": [
+            "LeftShoulder",
+            "LeftArm",
+            "LeftForeArm",
+            "LeftHand",
+            "RightShoulder",
+            "RightArm",
+            "RightForeArm",
+            "RightHand"
+          ],
+          "debugColor": "#4EC96D",
+          "style": "worn",
+          "color": "#4EC96D"
+        },
+        {
+          "name": "torso",
+          "bones": [
+            "Hips",
+            "Spine",
+            "Spine01",
+            "Spine02",
+            "Spine1"
+          ],
+          "debugColor": "#1A1A2E",
+          "style": "worn",
+          "color": "#1A1A2E"
+        },
+        {
+          "name": "legs",
+          "bones": [
+            "LeftUpLeg",
+            "LeftLeg",
+            "LeftFoot",
+            "LeftToeBase",
+            "RightUpLeg",
+            "RightLeg",
+            "RightFoot",
+            "RightToeBase"
+          ],
+          "debugColor": "#1A1A2E",
+          "style": "rough",
+          "color": "#1A1A2E"
+        }
+      ],
+      "fallback": {
+        "debugColor": "#4EC96D",
+        "style": "worn",
+        "color": "#4EC96D"
+      }
+    }
+  },
+  {
+    "name": "possessed-general",
+    "base": "possessed-general.glb",
+    "rigged": "possessed-general-rigged.glb",
+    "walk": "possessed-general-walk.glb",
+    "run": "possessed-general-run.glb",
+    "zones": {
+      "zones": [
+        {
+          "name": "head",
+          "bones": [
+            "neck",
+            "Head",
+            "head_end",
+            "headfront"
+          ],
+          "debugColor": "#FF6B35",
+          "style": "metallic",
+          "color": "#FF6B35"
+        },
+        {
+          "name": "arms",
+          "bones": [
+            "LeftShoulder",
+            "LeftArm",
+            "LeftForeArm",
+            "LeftHand",
+            "RightShoulder",
+            "RightArm",
+            "RightForeArm",
+            "RightHand"
+          ],
+          "debugColor": "#FF6B35",
+          "style": "metallic",
+          "color": "#FF6B35"
+        },
+        {
+          "name": "torso",
+          "bones": [
+            "Hips",
+            "Spine",
+            "Spine01",
+            "Spine02",
+            "Spine1"
+          ],
+          "debugColor": "#4A4E69",
+          "style": "metallic",
+          "color": "#4A4E69"
+        },
+        {
+          "name": "legs",
+          "bones": [
+            "LeftUpLeg",
+            "LeftLeg",
+            "LeftFoot",
+            "LeftToeBase",
+            "RightUpLeg",
+            "RightLeg",
+            "RightFoot",
+            "RightToeBase"
+          ],
+          "debugColor": "#4A4E69",
+          "style": "worn",
+          "color": "#4A4E69"
+        }
+      ],
+      "fallback": {
+        "debugColor": "#FF6B35",
+        "style": "metallic",
+        "color": "#FF6B35"
+      }
+    }
+  },
+  {
+    "name": "possessed-ninja",
+    "base": "possessed-ninja.glb",
+    "rigged": "possessed-ninja-rigged.glb",
+    "walk": "possessed-ninja-walk.glb",
+    "run": "possessed-ninja-run.glb",
+    "zones": {
+      "zones": [
+        {
+          "name": "head",
+          "bones": [
+            "neck",
+            "Head",
+            "head_end",
+            "headfront"
+          ],
+          "debugColor": "#E84393",
+          "style": "smooth",
+          "color": "#E84393"
+        },
+        {
+          "name": "arms",
+          "bones": [
+            "LeftShoulder",
+            "LeftArm",
+            "LeftForeArm",
+            "LeftHand",
+            "RightShoulder",
+            "RightArm",
+            "RightForeArm",
+            "RightHand"
+          ],
+          "debugColor": "#1A1A2E",
+          "style": "worn",
+          "color": "#1A1A2E"
+        },
+        {
+          "name": "torso",
+          "bones": [
+            "Hips",
+            "Spine",
+            "Spine01",
+            "Spine02",
+            "Spine1"
+          ],
+          "debugColor": "#1A1A2E",
+          "style": "worn",
+          "color": "#1A1A2E"
+        },
+        {
+          "name": "legs",
+          "bones": [
+            "LeftUpLeg",
+            "LeftLeg",
+            "LeftFoot",
+            "LeftToeBase",
+            "RightUpLeg",
+            "RightLeg",
+            "RightFoot",
+            "RightToeBase"
+          ],
+          "debugColor": "#E84393",
+          "style": "rough",
+          "color": "#E84393"
+        }
+      ],
+      "fallback": {
+        "debugColor": "#E84393",
+        "style": "worn",
+        "color": "#E84393"
+      }
+    }
+  },
+  {
+    "name": "possessed-peasant",
+    "base": "possessed-peasant.glb",
+    "rigged": "possessed-peasant-rigged.glb",
+    "walk": "possessed-peasant-walk.glb",
+    "run": "possessed-peasant-run.glb",
+    "zones": {
+      "zones": [
+        {
+          "name": "head",
+          "bones": [
+            "neck",
+            "Head",
+            "head_end",
+            "headfront"
+          ],
+          "debugColor": "#9B5DE5",
+          "style": "smooth",
+          "color": "#9B5DE5"
+        },
+        {
+          "name": "arms",
+          "bones": [
+            "LeftShoulder",
+            "LeftArm",
+            "LeftForeArm",
+            "LeftHand",
+            "RightShoulder",
+            "RightArm",
+            "RightForeArm",
+            "RightHand"
+          ],
+          "debugColor": "#9B5DE5",
+          "style": "rough",
+          "color": "#9B5DE5"
+        },
+        {
+          "name": "torso",
+          "bones": [
+            "Hips",
+            "Spine",
+            "Spine01",
+            "Spine02",
+            "Spine1"
+          ],
+          "debugColor": "#9B5DE5",
+          "style": "rough",
+          "color": "#9B5DE5"
+        },
+        {
+          "name": "legs",
+          "bones": [
+            "LeftUpLeg",
+            "LeftLeg",
+            "LeftFoot",
+            "LeftToeBase",
+            "RightUpLeg",
+            "RightLeg",
+            "RightFoot",
+            "RightToeBase"
+          ],
+          "debugColor": "#1A1A2E",
+          "style": "rough",
+          "color": "#1A1A2E"
+        }
+      ],
+      "fallback": {
+        "debugColor": "#9B5DE5",
+        "style": "rough",
+        "color": "#9B5DE5"
+      }
+    }
+  },
+  {
+    "name": "ronin",
+    "base": "ronin.glb",
+    "rigged": "ronin-rigged.glb",
+    "walk": "ronin-walk.glb",
+    "run": "ronin-run.glb",
+    "zones": {
+      "zones": [
+        {
+          "name": "head",
+          "bones": [
+            "neck",
+            "Head",
+            "head_end",
+            "headfront"
+          ],
+          "debugColor": "#F2E9E4",
+          "style": "smooth",
+          "color": "#F2E9E4"
+        },
+        {
+          "name": "arms",
+          "bones": [
+            "LeftShoulder",
+            "LeftArm",
+            "LeftForeArm",
+            "LeftHand",
+            "RightShoulder",
+            "RightArm",
+            "RightForeArm",
+            "RightHand"
+          ],
+          "debugColor": "#4A4E69",
+          "style": "worn",
+          "color": "#4A4E69"
+        },
+        {
+          "name": "torso",
+          "bones": [
+            "Hips",
+            "Spine",
+            "Spine01",
+            "Spine02",
+            "Spine1"
+          ],
+          "debugColor": "#4A4E69",
+          "style": "metallic",
+          "color": "#4A4E69"
+        },
+        {
+          "name": "legs",
+          "bones": [
+            "LeftUpLeg",
+            "LeftLeg",
+            "LeftFoot",
+            "LeftToeBase",
+            "RightUpLeg",
+            "RightLeg",
+            "RightFoot",
+            "RightToeBase"
+          ],
+          "debugColor": "#1A1A2E",
+          "style": "rough",
+          "color": "#1A1A2E"
+        }
+      ],
+      "fallback": {
+        "debugColor": "#4A4E69",
+        "style": "worn",
+        "color": "#4A4E69"
+      }
+    }
+  },
+  {
+    "name": "rosary-nuke",
+    "base": "rosary-nuke.glb"
+  },
+  {
+    "name": "shinobi",
+    "base": "shinobi.glb",
+    "rigged": "shinobi-rigged.glb",
+    "walk": "shinobi-walk.glb",
+    "run": "shinobi-run.glb",
+    "zones": {
+      "zones": [
+        {
+          "name": "head",
+          "bones": [
+            "neck",
+            "Head",
+            "head_end",
+            "headfront"
+          ],
+          "debugColor": "#F2E9E4",
+          "style": "smooth",
+          "color": "#F2E9E4"
+        },
+        {
+          "name": "arms",
+          "bones": [
+            "LeftShoulder",
+            "LeftArm",
+            "LeftForeArm",
+            "LeftHand",
+            "RightShoulder",
+            "RightArm",
+            "RightForeArm",
+            "RightHand"
+          ],
+          "debugColor": "#1A1A2E",
+          "style": "worn",
+          "color": "#1A1A2E"
+        },
+        {
+          "name": "torso",
+          "bones": [
+            "Hips",
+            "Spine",
+            "Spine01",
+            "Spine02",
+            "Spine1"
+          ],
+          "debugColor": "#4A4E69",
+          "style": "worn",
+          "color": "#4A4E69"
+        },
+        {
+          "name": "legs",
+          "bones": [
+            "LeftUpLeg",
+            "LeftLeg",
+            "LeftFoot",
+            "LeftToeBase",
+            "RightUpLeg",
+            "RightLeg",
+            "RightFoot",
+            "RightToeBase"
+          ],
+          "debugColor": "#1A1A2E",
+          "style": "rough",
+          "color": "#1A1A2E"
+        }
+      ],
+      "fallback": {
+        "debugColor": "#1A1A2E",
+        "style": "worn",
+        "color": "#1A1A2E"
+      }
+    }
+  },
+  {
+    "name": "shrine-box",
+    "base": "shrine-box.glb"
+  },
+  {
+    "name": "shrine-challenge",
+    "base": "shrine-challenge.glb"
+  },
+  {
+    "name": "shrine-curse",
+    "base": "shrine-curse.glb"
+  },
+  {
+    "name": "shrine-gamble",
+    "base": "shrine-gamble.glb"
+  },
+  {
+    "name": "shrine-reroll",
+    "base": "shrine-reroll.glb"
+  },
+  {
+    "name": "shuriken",
+    "base": "shuriken.glb"
+  },
+  {
+    "name": "spirit-ward",
+    "base": "spirit-ward.glb"
+  },
+  {
+    "name": "stone-buddha",
+    "base": "stone-buddha.glb"
+  },
+  {
+    "name": "xp-gem",
+    "base": "xp-gem.glb"
+  },
+  {
+    "name": "yurei-priestess",
+    "base": "yurei-priestess.glb",
+    "rigged": "yurei-priestess-rigged.glb",
+    "walk": "yurei-priestess-walk.glb",
+    "run": "yurei-priestess-run.glb",
+    "zones": {
+      "zones": [
+        {
+          "name": "head",
+          "bones": [
+            "neck",
+            "Head",
+            "head_end",
+            "headfront"
+          ],
+          "debugColor": "#F2E9E4",
+          "style": "smooth",
+          "color": "#F2E9E4"
+        },
+        {
+          "name": "arms",
+          "bones": [
+            "LeftShoulder",
+            "LeftArm",
+            "LeftForeArm",
+            "LeftHand",
+            "RightShoulder",
+            "RightArm",
+            "RightForeArm",
+            "RightHand"
+          ],
+          "debugColor": "#22D1EE",
+          "style": "smooth",
+          "color": "#22D1EE"
+        },
+        {
+          "name": "torso",
+          "bones": [
+            "Hips",
+            "Spine",
+            "Spine01",
+            "Spine02",
+            "Spine1"
+          ],
+          "debugColor": "#F2E9E4",
+          "style": "organic",
+          "color": "#F2E9E4"
+        },
+        {
+          "name": "legs",
+          "bones": [
+            "LeftUpLeg",
+            "LeftLeg",
+            "LeftFoot",
+            "LeftToeBase",
+            "RightUpLeg",
+            "RightLeg",
+            "RightFoot",
+            "RightToeBase"
+          ],
+          "debugColor": "#4A4E69",
+          "style": "organic",
+          "color": "#4A4E69"
+        }
+      ],
+      "fallback": {
+        "debugColor": "#F2E9E4",
+        "style": "organic",
+        "color": "#F2E9E4"
+      }
+    }
+  },
+  {
+    "name": "base",
+    "base": "base.glb"
+  },
+  {
+    "name": "rigged",
+    "base": "rigged.glb"
+  },
+  {
+    "name": "run",
+    "base": "run.glb"
+  },
+  {
+    "name": "walk",
+    "base": "walk.glb"
   }
 ]

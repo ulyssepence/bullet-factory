@@ -31,6 +31,8 @@ const vertexWind = /* glsl */ `
   uniform float uBladeHeight;
   uniform float uBladeHeightVar;
 
+  uniform float uBillboard;
+
   void main() {
     vUv = uv;
     vColorVar = aColorVar;
@@ -39,9 +41,15 @@ const vertexWind = /* glsl */ `
     vec3 pos = position;
     pos.y *= h * aScale;
 
-    float c = cos(aRotation);
-    float s = sin(aRotation);
-    vec3 rotated = vec3(pos.x * c - pos.z * s, pos.y, pos.x * s + pos.z * c);
+    vec3 rotated;
+    if (uBillboard > 0.5) {
+      vec3 camRight = vec3(modelViewMatrix[0][0], modelViewMatrix[1][0], modelViewMatrix[2][0]);
+      rotated = camRight * pos.x + vec3(0.0, 1.0, 0.0) * pos.y;
+    } else {
+      float c = cos(aRotation);
+      float s = sin(aRotation);
+      rotated = vec3(pos.x * c - pos.z * s, pos.y, pos.x * s + pos.z * c);
+    }
     vec3 worldPos = rotated + aOffset;
 
     vec2 windDir = normalize(uWindDirection);
@@ -79,6 +87,7 @@ const vertexFloat = /* glsl */ `
   uniform float uBladeHeight;
   uniform float uBladeHeightVar;
   uniform float uFloatSpeed;
+  uniform float uBillboard;
 
   void main() {
     vUv = uv;
@@ -88,9 +97,15 @@ const vertexFloat = /* glsl */ `
     vec3 pos = position;
     pos.y *= h * aScale;
 
-    float c = cos(aRotation);
-    float s = sin(aRotation);
-    vec3 rotated = vec3(pos.x * c - pos.z * s, pos.y, pos.x * s + pos.z * c);
+    vec3 rotated;
+    if (uBillboard > 0.5) {
+      vec3 camRight = vec3(modelViewMatrix[0][0], modelViewMatrix[1][0], modelViewMatrix[2][0]);
+      rotated = camRight * pos.x + vec3(0.0, 1.0, 0.0) * pos.y;
+    } else {
+      float c = cos(aRotation);
+      float s = sin(aRotation);
+      rotated = vec3(pos.x * c - pos.z * s, pos.y, pos.x * s + pos.z * c);
+    }
     vec3 worldPos = rotated + aOffset;
 
     float seed1 = fract(sin(aColorVar * 127.1) * 43758.5);
@@ -122,6 +137,7 @@ const vertexStatic = /* glsl */ `
   uniform float uBladeHeight;
   uniform float uBladeHeightVar;
   uniform float uVibrateAmp;
+  uniform float uBillboard;
 
   void main() {
     vUv = uv;
@@ -131,9 +147,15 @@ const vertexStatic = /* glsl */ `
     vec3 pos = position;
     pos.y *= h * aScale;
 
-    float c = cos(aRotation);
-    float s = sin(aRotation);
-    vec3 rotated = vec3(pos.x * c - pos.z * s, pos.y, pos.x * s + pos.z * c);
+    vec3 rotated;
+    if (uBillboard > 0.5) {
+      vec3 camRight = vec3(modelViewMatrix[0][0], modelViewMatrix[1][0], modelViewMatrix[2][0]);
+      rotated = camRight * pos.x + vec3(0.0, 1.0, 0.0) * pos.y;
+    } else {
+      float c = cos(aRotation);
+      float s = sin(aRotation);
+      rotated = vec3(pos.x * c - pos.z * s, pos.y, pos.x * s + pos.z * c);
+    }
     vec3 worldPos = rotated + aOffset;
 
     float vibrate = sin(uTime * 20.0 + aColorVar * 100.0) * uVibrateAmp * uv.y;
@@ -686,25 +708,6 @@ export const variants: Record<string, ShaderVariant> = {
     },
     groundColor: '#1a1a2e',
   },
-  fireflies: {
-    label: 'Fireflies',
-    vertex: vertexFloat,
-    fragment: firefliesFragment,
-    controls: {
-      pulseRate: { value: 2.0, min: 0.5, max: 5, step: 0.1 },
-      floatSpeed: { value: 1.0, min: 0.1, max: 3, step: 0.1 },
-      glowSize: { value: 0.3, min: 0.05, max: 0.5, step: 0.05 },
-    },
-    sharedDefaults: {
-      density: 5000, bladeHeight: 0.15, bladeHeightVar: 0.05, windStrength: 0,
-    },
-    groundColor: '#0a1a0a',
-    materialConfig: {
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-      transparent: true,
-    },
-  },
   seaweed: {
     label: 'Seaweed / Kelp',
     vertex: vertexWind,
@@ -761,5 +764,24 @@ export const variants: Record<string, ShaderVariant> = {
       bladeHeight: 0.6, windStrength: 0.15, windSpeed: 0.8,
     },
     groundColor: '#3a5a2a',
+  },
+  fireflies: {
+    label: 'Fireflies',
+    vertex: vertexFloat,
+    fragment: firefliesFragment,
+    controls: {
+      pulseRate: { value: 2.0, min: 0.5, max: 5, step: 0.1 },
+      floatSpeed: { value: 1.0, min: 0.1, max: 3, step: 0.1 },
+      glowSize: { value: 0.3, min: 0.05, max: 0.5, step: 0.05 },
+    },
+    sharedDefaults: {
+      density: 5000, bladeHeight: 0.15, bladeHeightVar: 0.05, windStrength: 0,
+    },
+    groundColor: '#0a1a0a',
+    materialConfig: {
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      transparent: true,
+    },
   },
 }

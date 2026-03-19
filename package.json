@@ -10,6 +10,7 @@
     "smoke-test": "npx tsx scripts/smoke-test.ts",
     "generate-music": "npx tsx scripts/generate-music.ts",
     "view-mesh": "npx tsx scripts/view-mesh.ts",
+    "regression": "npx tsx scripts/regression.ts",
     "clean": "rm -rf games/*/dist tools/*/dist"
   },
   "dependencies": {

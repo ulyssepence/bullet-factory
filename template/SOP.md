@@ -233,7 +233,7 @@ Draft all sections autonomously — do NOT ask the user for confirmation between
 
 - [ ] **Terrain & props** — Define mesh prompts for all static objects (no rig/animation). Include wall variants, destructibles, shrines, pickups/drops, and environmental dressing. Each needs a `meshPrompt` — identity only (silhouette, features). Shared art style goes in mesh-manifest.json's `style` field — see `patterns/mesh-style-coherence.md`. Think about what the player sees at game zoom — simple, readable silhouettes matter more than detail.
   > ```
-  > Wall:           meshPrompt=  (e.g. "Weathered wooden saloon wall section, plank boards, rustic Western style")
+  > Wall piece:     meshPrompt=  (e.g. "Weathered wooden barricade, plank boards, standalone piece, rustic Western style")
   > Shrine:         meshPrompt=  (e.g. "Glowing mystical totem pole, carved symbols, magical aura")
   > XP gem:         meshPrompt=  (e.g. "Small glowing crystal, simple gem shape, pickup item")
   > Health pickup:  meshPrompt=  (e.g. "Red heart, simple shape, health pickup")
@@ -242,6 +242,8 @@ Draft all sections autonomously — do NOT ask the user for confirmation between
   > (complete one entry per destructible from Map section, each with meshPrompt)
   > (complete 2-4 environmental props with meshPrompt — dressing that fills empty space)
   > ```
+  >
+  > **Wall meshes** are noise-scattered within wall regions (not placed on a grid). The prompt should produce a standalone barrier/wall piece that looks natural at varying rotations and scales. Think rock formations, barricades, rubble — things that read as "impassable" when clustered together. The procedural ribbon geometry (`buildWallGeo`) is removed and replaced by dense instancing.
 
 - [ ] **Environmental dressing** — Choose procedural atmosphere layers that make the world feel alive. These are code-only (no assets). Pick 2-4 that fit the tone. Implemented in 3.4. Read `patterns/grass-vegetation.md` and `patterns/environment-dressing.md` for options.
   > ```
@@ -706,7 +708,12 @@ Start the dev server (`npm run dev <slug> -- --serve`). Present the playable gra
   - [ ] All bosses generated and rigged
   - [ ] All player characters generated and rigged
   - [ ] All terrain/props generated (static, no rig)
-  - [ ] Replace graybox meshes with generated assets in code
+  - [ ] Replace graybox walls — noise-scatter wall GLB instances within wall cells using `InstancedMesh` (GPU instanced, single draw call). Remove `buildWallGeo` ribbon and `wallFills` roof quads from render tree. Use seeded noise for position jitter, random Y rotation, and slight scale variation. ~1-2 instances per wall cell. Apply zone coloring via instance color attribute.
+    > **Wall instancing approach:** Walls are procedural ribbon geometry by default (`buildWallGeo` in `level/terrain-geo.ts`). To replace: iterate wall cells in grid, use seeded noise to jitter position/rotation/scale per cell, create a single GPU `InstancedMesh` with `models.getGeometry('wall')`. Compute a base scale from the geometry's bounding box so each piece fits ~1 grid unit. Remove the `wallGeo` ribbon mesh and `wallFills` roof quads. Physics uses grid data directly (not render geometry) — no physics changes needed. Follow `PropsScatter` pattern for noise-based placement.
+  - [ ] Replace graybox destructibles with GLB meshes
+  - [ ] Replace graybox shrines/interactables with GLB meshes
+  - [ ] Replace graybox pickups/drops with GLB meshes
+  - [ ] Replace graybox environmental props with GLB meshes
   - [ ] Weapon HUD icons replaced: render each weapon's projectile mesh as a small thumbnail (or use a 2D sprite rendered from the 3D model). Cooldown ring still overlays.
   - [ ] Assets render correctly (use `SkeletonUtils.clone` for skinned meshes — see `patterns/character-animation.md`)
   - [ ] Walk/run animations play on moving characters (extract clips from `-walk.glb`/`-run.glb`, crossfade based on speed)

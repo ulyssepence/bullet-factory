@@ -1,15 +1,20 @@
 // Headless bot runner for balance tuning
 // Usage: npx tsx scripts/bot-runner.ts <slug>
 
-const slug = process.argv[2]
+const args = process.argv.slice(2)
+const slug = args.find(a => !a.startsWith('--'))
+const enableModifiers = args.includes('--modifiers')
+const stationaryMode = args.includes('--stationary')
 if (!slug) {
-  console.error('Usage: npx tsx scripts/bot-runner.ts <slug>')
+  console.error('Usage: npx tsx scripts/bot-runner.ts <slug> [--modifiers] [--stationary]')
   process.exit(1)
 }
 
 // Mock browser globals before any game imports
-globalThis.window = { addEventListener: () => {}, removeEventListener: () => {} } as any
-globalThis.document = { addEventListener: () => {}, createElement: () => ({ getContext: () => null }) } as any
+const _storage = new Map<string, string>()
+globalThis.localStorage = { getItem: (k: string) => _storage.get(k) ?? null, setItem: (k: string, v: string) => { _storage.set(k, v) }, removeItem: (k: string) => { _storage.delete(k) } } as any
+globalThis.window = { addEventListener: () => {}, removeEventListener: () => {}, localStorage: globalThis.localStorage } as any
+globalThis.document = { addEventListener: () => {}, createElement: () => ({ getContext: () => null, style: {}, offsetHeight: 0 }), body: { appendChild: () => {} } } as any
 globalThis.AudioContext = class {
   createBufferSource() { return { connect: () => ({ connect: () => {} }), start: () => {}, stop: () => {}, buffer: null, loop: false } }
   createGain() { return { gain: { value: 1 }, connect: () => ({ connect: () => {} }) } }
@@ -18,14 +23,20 @@ globalThis.AudioContext = class {
   decodeAudioData() { return Promise.resolve({}) }
 } as any
 
+if (enableModifiers) {
+  const specMod = await import(`../games/${slug}/src/spec`)
+  const modIds = (specMod.spec ?? specMod.default?.spec)?.metaProgression?.difficultyModifiers?.map((m: any) => m.id) ?? []
+  _storage.set('meta', JSON.stringify({ currency: 0, upgradeRanks: {}, unlockIds: [], firstClear: false, activeModifiers: modIds }))
+}
+
 const { gameStore, restart, tick } = await import(`../games/${slug}/src/store`)
 const input = await import(`../games/${slug}/src/input`)
 const progression = await import(`../games/${slug}/src/progression`)
 const objects = await import(`../games/${slug}/src/objects`)
 
 const DT = 1 / 60
-const MAX_TICKS = 36_000 // 600s
-const NUM_RUNS = 10
+const MAX_TICKS = stationaryMode ? 7_200 : 36_000
+const NUM_RUNS = stationaryMode ? 3 : 10
 const PASS_THRESHOLD = 0.8
 
 interface RunStats {
@@ -74,14 +85,16 @@ function runBot(): RunStats {
       }
     }
 
-    moveTimer -= DT
-    if (moveTimer <= 0) {
-      const angle = Math.random() * Math.PI * 2
-      moveDirX = Math.cos(angle)
-      moveDirZ = Math.sin(angle)
-      moveTimer = 1 + Math.random() * 2
+    if (!stationaryMode) {
+      moveTimer -= DT
+      if (moveTimer <= 0) {
+        const angle = Math.random() * Math.PI * 2
+        moveDirX = Math.cos(angle)
+        moveDirZ = Math.sin(angle)
+        moveTimer = 1 + Math.random() * 2
+      }
+      input.setTouchMovement(moveDirX, moveDirZ)
     }
-    input.setTouchMovement(moveDirX, moveDirZ)
 
     const t0 = performance.now()
     tick(DT)
@@ -122,18 +135,33 @@ for (let r = 0; r < NUM_RUNS; r++) {
   )
 }
 
+if (stationaryMode) {
+  console.log('\n--- Stationary Check ---')
+  const allDied = results.every(r => !r.survived)
+  console.log(`  ${allDied ? 'PASS' : 'FAIL'}  player dies when stationary: ${results.filter(r => !r.survived).length}/${NUM_RUNS}`)
+  if (!allDied) {
+    console.log('         → Increase enemy damage or contact damage')
+  }
+  process.exit(allDied ? 0 : 1)
+}
+
 console.log('\n--- Balance Checks ---')
 
-const checks: { name: string; test: (s: RunStats) => boolean; fix: string }[] = [
+const checks: { name: string; test: (s: RunStats) => boolean; fix: string; skipModifiers?: boolean }[] = [
   { name: 'survive >30s',     test: s => s.timeOfDeath > 30,      fix: 'Increase player.maxHealth or decrease enemy damage' },
   { name: 'takes damage',     test: s => s.minHealthPercent < 0.8, fix: 'Increase enemy damage or spawn density' },
-  { name: 'level ≥3 by 120s', test: s => s.levelAt120s >= 3,      fix: 'Decrease xpToNextBase or increase enemy xpValue' },
+  { name: 'level ≥3 by 120s', test: s => s.levelAt120s >= 3,      fix: 'Decrease xpToNextBase or increase enemy xpValue', skipModifiers: true },
   { name: 'enemy cap <300',   test: s => s.peakEnemyCount < 300,  fix: 'Reduce wave counts or increase player damage' },
   { name: 'fps budget <16ms', test: s => s.peakTickMs < 16,       fix: 'Reduce enemy counts or simplify tick logic' },
 ]
 
 let allPass = true
 for (const check of checks) {
+  if (enableModifiers && check.skipModifiers) {
+    const passing = results.filter(r => check.test(r)).length
+    console.log(`  SKIP  ${check.name}: ${passing}/${NUM_RUNS} (expected with modifiers)`)
+    continue
+  }
   const passing = results.filter(r => check.test(r)).length
   const ok = passing >= NUM_RUNS * PASS_THRESHOLD
   console.log(`  ${ok ? 'PASS' : 'FAIL'}  ${check.name}: ${passing}/${NUM_RUNS}`)

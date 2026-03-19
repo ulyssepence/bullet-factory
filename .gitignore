@@ -10,6 +10,5 @@ playwright.config.ts
 smoke-screenshots/
 test-results/
 *.glb
-gdc/
 docs/conversations/
 .sop.*

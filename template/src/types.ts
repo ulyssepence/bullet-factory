@@ -23,6 +23,19 @@ export interface RunTelemetry {
   enemyTypesEncountered: Record<string, true>
 }
 
+export interface RunStats {
+  totalKills: number
+  killsByEnemyType: Record<string, number>
+  totalDamageDealt: number
+  damageByWeapon: Record<string, number>
+  totalDamageTaken: number
+  xpCollected: number
+  pickupsCollected: Record<string, number>
+  elitesKilled: number
+  bossesKilled: number
+  levelUpsSkipped: number
+}
+
 export interface GameState {
   phase: GamePhase
   player: PlayerState

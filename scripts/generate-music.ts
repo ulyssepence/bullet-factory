@@ -176,10 +176,12 @@ async function processTrack(entry: MusicEntry, outDir: string, tmpDir: string) {
 async function main() {
   const args = process.argv.slice(2)
   const dryRun = args.includes("--dry-run")
-  const slug = args.find(a => !a.startsWith("--"))
+  const positional = args.filter(a => !a.startsWith("--"))
 
-  if (!slug) {
-    console.error("Usage: npx tsx scripts/generate-music.ts <slug> [--dry-run]")
+  if (positional.length === 0) {
+    console.error("Usage:")
+    console.error("  npx tsx scripts/generate-music.ts <slug> [--dry-run]")
+    console.error("  npx tsx scripts/generate-music.ts <prompt> <output.ogg> [--dry-run]")
     process.exit(1)
   }
 
@@ -188,6 +190,40 @@ async function main() {
     process.exit(1)
   }
 
+  const isStandalone = positional.length >= 2 && !fs.existsSync(path.resolve("games", positional[0]))
+
+  if (isStandalone) {
+    const prompt = positional[0]
+    const outputPath = path.resolve(positional[1])
+    const isSting = /victory|defeat|death|game.over|sting/i.test(prompt)
+    const duration = isSting ? STING_DURATION : DEFAULT_DURATION
+    const entry: MusicEntry = {
+      phase: "standalone",
+      slug: "standalone",
+      prompt,
+      loop: !isSting,
+      duration,
+    }
+
+    console.log(`Prompt: "${prompt}"`)
+    console.log(`Mode: ${entry.loop ? "loop" : "sting"}, ${duration}s`)
+    console.log(`Output: ${outputPath}`)
+
+    if (dryRun) {
+      console.log("\n--dry-run: stopping before generation")
+      return
+    }
+
+    const tmpDir = fs.mkdtempSync(path.join(path.dirname(outputPath), ".tmp-music-"))
+    await processTrack(entry, path.dirname(outputPath), tmpDir)
+    const tmpOut = path.join(path.dirname(outputPath), `${entry.slug}.ogg`)
+    if (tmpOut !== outputPath) fs.renameSync(tmpOut, outputPath)
+    fs.rmSync(tmpDir, { recursive: true, force: true })
+    console.log(`\nDone! ${outputPath}`)
+    return
+  }
+
+  const slug = positional[0]
   const gameDir = path.resolve("games", slug)
   const sopPath = path.join(gameDir, "SOP.md")
   if (!fs.existsSync(sopPath)) {

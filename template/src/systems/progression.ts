@@ -4,6 +4,7 @@ export interface SelectChoicesOpts {
   maxWeapons?: number
   currentWeaponCount?: number
   banished?: Set<string>
+  currentWeaponTypes?: string[]
 }
 
 export function xpToNext(level: number, base: number, scaling: number): number {
@@ -25,6 +26,10 @@ export function selectChoices(
     const item = seq.items[idx]
     if (opts?.maxWeapons != null && opts.currentWeaponCount != null &&
         opts.currentWeaponCount >= opts.maxWeapons && item.change.type === 'add_weapon') continue
+    if (item.change.type === 'evolve' && opts?.currentWeaponTypes) {
+      const [a, b] = item.change.inputs
+      if (!opts.currentWeaponTypes.includes(a) || !opts.currentWeaponTypes.includes(b)) continue
+    }
     fronts.push({ seqId: seq.id, label: item.label, weight: item.weight, idx })
   }
 

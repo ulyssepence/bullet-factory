@@ -1,4 +1,4 @@
-import React, { useRef, useMemo, useEffect, useState } from 'react'
+import React, { useRef, useMemo, useEffect, useState, useCallback } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
@@ -99,6 +99,7 @@ function GrassField() {
     windAngle: { value: 45, min: 0, max: 360, step: 1 },
     noiseScale: { value: 0.15, min: 0.01, max: 1, step: 0.01 },
     densityFalloff: { value: 0.3, min: 0, max: 1, step: 0.01 },
+    billboard: false,
   })
 
   const variantControls = useControls(
@@ -134,6 +135,7 @@ function GrassField() {
       uWindSpeed: { value: shared.windSpeed },
       uWindStrength: { value: shared.windStrength },
       uWindDirection: { value: new THREE.Vector2(Math.cos(shared.windAngle * Math.PI / 180), Math.sin(shared.windAngle * Math.PI / 180)) },
+      uBillboard: { value: shared.billboard ? 1.0 : 0.0 },
     }
     for (const [k, v] of Object.entries(variant.controls)) {
       const uniformName = 'u' + k.charAt(0).toUpperCase() + k.slice(1)
@@ -160,7 +162,8 @@ function GrassField() {
     mat.uniforms.uWindStrength.value = shared.windStrength
     const rad = (shared.windAngle * Math.PI) / 180
     mat.uniforms.uWindDirection.value.set(Math.cos(rad), Math.sin(rad))
-  }, [shared.baseColor, shared.tipColor, shared.colorVariation, shared.bladeHeight, shared.bladeHeightVar, shared.bladeWidth, shared.windSpeed, shared.windStrength, shared.windAngle])
+    mat.uniforms.uBillboard.value = shared.billboard ? 1.0 : 0.0
+  }, [shared.baseColor, shared.tipColor, shared.colorVariation, shared.bladeHeight, shared.bladeHeightVar, shared.bladeWidth, shared.windSpeed, shared.windStrength, shared.windAngle, shared.billboard])
 
   useEffect(() => {
     const mat = matRef.current
@@ -212,19 +215,154 @@ function GrassField() {
   )
 }
 
-function App() {
+const gridVertexShader = /* glsl */ `
+  varying vec2 vUv;
+  varying float vColorVar;
+  varying vec3 vWorldPos;
+  void main() {
+    vUv = uv;
+    vColorVar = 0.5;
+    vWorldPos = position;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`
+
+function GridTile({ variant, variantKey, x, y }: { variant: ShaderVariant; variantKey: string; x: number; y: number }) {
+  const matRef = useRef<THREE.ShaderMaterial>(null)
+
+  const uniforms = useMemo(() => {
+    const u: Record<string, { value: any }> = {
+      uTime: { value: 0 },
+      uBaseColor: { value: new THREE.Color(variant.sharedDefaults?.baseColor ?? '#3a7d3a') },
+      uTipColor: { value: new THREE.Color(variant.sharedDefaults?.tipColor ?? '#7ec850') },
+      uColorVariation: { value: 0.3 },
+      uBladeHeight: { value: variant.sharedDefaults?.bladeHeight ?? 0.55 },
+      uBladeHeightVar: { value: variant.sharedDefaults?.bladeHeightVar ?? 0.25 },
+      uBladeWidth: { value: variant.sharedDefaults?.bladeWidth ?? 0.08 },
+      uWindSpeed: { value: variant.sharedDefaults?.windSpeed ?? 1.5 },
+      uWindStrength: { value: variant.sharedDefaults?.windStrength ?? 0.4 },
+      uWindDirection: { value: new THREE.Vector2(0.707, 0.707) },
+      uBillboard: { value: 0.0 },
+    }
+    for (const [k, v] of Object.entries(variant.controls)) {
+      u['u' + k.charAt(0).toUpperCase() + k.slice(1)] = { value: v.value }
+    }
+    if (variant.uniforms) {
+      for (const [k, v] of Object.entries(variant.uniforms)) {
+        u[k] = { value: v.value }
+      }
+    }
+    return u
+  }, [variantKey])
+
+  useFrame((_, delta) => {
+    if (matRef.current) matRef.current.uniforms.uTime.value += delta
+  })
+
+  const mc = variant.materialConfig
   return (
-    <Canvas
-      camera={{ position: [15, 10, 15], fov: 55, near: 0.1, far: 500 }}
-      gl={{ antialias: true }}
-      style={{ background: '#87CEEB' }}
-    >
-      <ambientLight intensity={0.4} />
-      <directionalLight position={[10, 20, 10]} intensity={1.2} />
-      <GrassField />
-      <OrbitControls makeDefault maxPolarAngle={Math.PI / 2 - 0.05} />
-    </Canvas>
+    <mesh position={[x, y, 0]}>
+      <planeGeometry args={[1, 1]} />
+      <shaderMaterial
+        ref={matRef}
+        vertexShader={gridVertexShader}
+        fragmentShader={variant.fragment}
+        uniforms={uniforms}
+        side={THREE.DoubleSide}
+        transparent={mc?.transparent ?? true}
+        depthWrite={mc?.depthWrite ?? true}
+        blending={mc?.blending ?? THREE.NormalBlending}
+      />
+    </mesh>
   )
 }
+
+function ShaderGrid() {
+  const keys = Object.keys(variants)
+  const cols = 3
+  const spacing = 1.15
+
+  return (
+    <>
+      {keys.map((key, i) => {
+        const col = i % cols
+        const row = Math.floor(i / cols)
+        const x = (col - (cols - 1) / 2) * spacing
+        const y = -row * spacing + ((Math.ceil(keys.length / cols) - 1) / 2) * spacing
+        return <GridTile key={key} variant={variants[key]} variantKey={key} x={x} y={y} />
+      })}
+    </>
+  )
+}
+
+function App() {
+  const [gridMode, setGridMode] = useState(false)
+
+  const saveGrid = useCallback(() => {
+    const canvas = document.querySelector('canvas')
+    if (!canvas) return
+    canvas.toBlob((blob) => {
+      if (!blob) return
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'grass-shaders.png'
+      a.click()
+      URL.revokeObjectURL(url)
+    })
+  }, [])
+
+  return (
+    <>
+      <div style={{ position: 'fixed', top: 10, left: 10, zIndex: 100, display: 'flex', gap: 8 }}>
+        <button
+          onClick={() => setGridMode(!gridMode)}
+          style={{
+            padding: '6px 14px', background: gridMode ? '#4a9eff' : '#333',
+            color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 13,
+          }}
+        >
+          {gridMode ? '← Back' : 'Grid Preview'}
+        </button>
+        {gridMode && (
+          <button
+            onClick={saveGrid}
+            style={{
+              padding: '6px 14px', background: '#2a7a3a', color: '#fff',
+              border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 13,
+            }}
+          >
+            Save PNG
+          </button>
+        )}
+      </div>
+
+      {gridMode ? (
+        <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
+          <Canvas
+            orthographic
+            camera={{ zoom: 160, position: [0, 0, 5], near: 0.1, far: 10 }}
+            gl={{ antialias: true, alpha: true, preserveDrawingBuffer: true }}
+            style={{ background: 'transparent' }}
+          >
+            <ShaderGrid />
+          </Canvas>
+        </div>
+      ) : (
+        <Canvas
+          camera={{ position: [15, 10, 15], fov: 55, near: 0.1, far: 500 }}
+          gl={{ antialias: true }}
+          style={{ background: '#87CEEB' }}
+        >
+          <ambientLight intensity={0.4} />
+          <directionalLight position={[10, 20, 10]} intensity={1.2} />
+          <GrassField />
+          <OrbitControls makeDefault maxPolarAngle={Math.PI / 2 - 0.05} />
+        </Canvas>
+      )}
+    </>
+  )
+}
+
 
 createRoot(document.getElementById('root')!).render(<App />)
