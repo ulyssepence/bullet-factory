@@ -55,14 +55,15 @@ function Enemy({ position, isMoving, speed }: EnemyProps) {
   useEffect(() => {
     if (!isMoving) {
       // No idle animation from Meshy — stop all, show T-pose
-      Object.values(actions).forEach(a => a?.fadeOut(0.2))
+      Object.values(actions).forEach(a => a?.stop())
       return
     }
     const clip = speed > 3 ? 'run' : 'walk'
     const action = actions[clip]
     if (action) {
-      action.reset().fadeIn(0.2).play()
-      return () => { action.fadeOut(0.2) }
+      Object.values(actions).forEach(a => a?.stop())
+      action.reset().play()
+      return () => { action.stop() }
     }
   }, [isMoving, speed > 3])
 
@@ -92,10 +93,15 @@ useFrame((_, delta) => {
 })
 ```
 
+## Enemies must use animated clones, not instanced geometry
+
+Enemies with rigged GLBs must be rendered as animated character clone pools — not as `InstancedMesh` with extracted geometry. `InstancedMesh` discards the skeleton and all animations, reducing enemies to static shapes. Use the pool pattern above: `SkeletonUtils.clone` per pool slot, each with its own `AnimationMixer`, walk action playing. Cap pool size at ~80 total (16 per enemy type) for performance. Apply `applyZoneMaterials()` to each clone for colored material zones.
+
 ## Key gotchas
 
+- **Use `stop()`, not `fadeOut()` for idle transitions.** `fadeOut(duration)` leaves the action in a "running but fading" state where `isRunning()` returns true for the fade duration. This prevents restarting the action and causes animations to appear stuck. Use `action.stop()` for clean transitions.
 - **SkeletonUtils.clone is required** for skinned meshes. Regular `scene.clone()` shares the skeleton, so all instances animate together.
-- **Meshy provides walking + running only.** No idle, attack, or death animations. Handle idle by stopping the mixer (shows T-pose) or by blending walk speed to 0.
+- **Meshy provides walking + running only.** No idle, attack, or death animations. Handle idle by stopping all actions (shows T-pose) or by blending walk speed to 0.
 - **Animation clips from separate GLBs work** because Meshy uses the same Mixamo skeleton across all outputs for a given character. The bone names and hierarchy match exactly.
 - **Preload all GLBs** to avoid pop-in: `useGLTF.preload(['models/x-rigged.glb', 'models/x-walk.glb', 'models/x-run.glb'])`
 - **Scale/rotation**: Meshy models face +Z in T-pose. You may need `rotation-y={Math.PI}` to face the camera or movement direction.

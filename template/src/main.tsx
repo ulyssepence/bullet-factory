@@ -36,7 +36,11 @@ function Player() {
 
   useFrame((_, dt) => {
     const state = gameStore.getState()
-    const [mx, mz] = input.getMovement()
+    // Block movement when level-up or shrine UI is active
+    const blocked = state.levelUpActive || state.shrineActive
+    const [rmx, rmz] = input.getMovement()
+    const mx = blocked ? 0 : rmx
+    const mz = blocked ? 0 : rmz
     state.player.position[0] += mx * state.player.speed * dt
     state.player.position[2] += mz * state.player.speed * dt
     if (mx !== 0 || mz !== 0) {
@@ -80,11 +84,23 @@ function GameLoop() {
   return null
 }
 
+let cameraDistance = 0.7
+
 function FollowCamera() {
+  useEffect(() => {
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      cameraDistance = Math.max(0.4, Math.min(1.5, cameraDistance + e.deltaY * 0.001))
+    }
+    window.addEventListener('wheel', onWheel, { passive: false })
+    return () => window.removeEventListener('wheel', onWheel)
+  }, [])
+
   useFrame(({ camera }) => {
     const [px, py, pz] = gameStore.getState().player.position
     const [sx, sy] = shake.getOffset()
-    camera.position.set(px + sx, py + 10 + sy, pz + 8)
+    const d = cameraDistance
+    camera.position.set(px + sx, py + 10 * d + sy, pz + 8 * d)
     camera.lookAt(px, py, pz)
   })
   return null

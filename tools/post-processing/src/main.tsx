@@ -3,8 +3,10 @@ import { createRoot } from 'react-dom/client'
 import { Canvas, useThree } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import { EffectComposer } from '@react-three/postprocessing'
-import { GamePostFX, DEFAULT_BODY, wrapFragment, SHADER_UNIFORMS, SHADER_PREAMBLE, PREAMBLE_LINE_COUNT } from '../../../template/src/postfx'
+import { GamePostFX, wrapFragment, SHADER_UNIFORMS, SHADER_PREAMBLE, PREAMBLE_LINE_COUNT } from '../../../template/src/postfx'
 import { Scene } from './scene'
+
+import { PRESETS, DEFAULT_PRESET_NAME } from './presets'
 
 import ace from 'ace-builds'
 import 'ace-builds/src-noconflict/mode-glsl'
@@ -79,14 +81,35 @@ function App() {
   const editorContainerRef = useRef<HTMLDivElement>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const effect = useMemo(() => new GamePostFX(), [])
+  const defaultPreset = useMemo(() => PRESETS.find(p => p.name === DEFAULT_PRESET_NAME)!, [])
+  const effect = useMemo(() => {
+    const fx = new GamePostFX()
+    fx.setBody(defaultPreset.body)
+    return fx
+  }, [])
+
+  const categories = useMemo(() => {
+    const cats: string[] = []
+    for (const p of PRESETS) {
+      if (!cats.includes(p.category)) cats.push(p.category)
+    }
+    return cats
+  }, [])
+
+  const handlePresetChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    const idx = parseInt(e.target.value)
+    if (isNaN(idx)) return
+    const preset = PRESETS[idx]
+    if (!preset || !editorRef.current) return
+    editorRef.current.setValue(preset.body, -1)
+  }, [])
 
   useEffect(() => {
     if (!editorContainerRef.current) return
     const editor = ace.edit(editorContainerRef.current, {
       mode: 'ace/mode/glsl',
       theme: 'ace/theme/monokai',
-      value: DEFAULT_BODY,
+      value: defaultPreset.body,
       fontSize: 14,
       showPrintMargin: false,
       tabSize: 2,
@@ -120,8 +143,27 @@ function App() {
         <div style={{
           padding: '8px 12px', background: '#2d2d2d', color: '#ccc',
           fontFamily: 'monospace', fontSize: 12, borderBottom: '1px solid #444',
+          display: 'flex', alignItems: 'center', gap: 12,
         }}>
-          Fragment Shader Body
+          <span>Fragment Shader Body</span>
+          <select
+            onChange={handlePresetChange}
+            defaultValue=""
+            style={{
+              background: '#1e1e1e', color: '#ccc', border: '1px solid #555',
+              padding: '2px 6px', fontFamily: 'monospace', fontSize: 12,
+              borderRadius: 3, cursor: 'pointer', flex: 1, maxWidth: 260,
+            }}
+          >
+            <option value="" disabled>Load preset...</option>
+            {categories.map(cat => (
+              <optgroup key={cat} label={cat}>
+                {PRESETS.map((p, i) =>
+                  p.category === cat ? <option key={i} value={i}>{p.name}</option> : null
+                )}
+              </optgroup>
+            ))}
+          </select>
         </div>
         <div ref={editorContainerRef} style={{ flex: 1 }} />
         {error && (

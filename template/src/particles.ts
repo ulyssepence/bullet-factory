@@ -27,14 +27,14 @@ export const PRESETS: Record<string, PresetParams> = {
     count: 80, poolSize: 256,
     velocity: [0, 3, 0], velocitySpread: [4, 2, 4],
     gravity: -6, lifetimeMin: 0.2, lifetimeMax: 0.8,
-    sizeMin: 0.04, sizeMax: 0.12, sizeScale: 1,
+    sizeMin: 0.08, sizeMax: 0.2, sizeScale: 1,
     opacity: 1, alphaCap: 0.4, loop: false, spread: [0, 0, 0],
   },
   radial: {
     count: 60, poolSize: 16,
     velocity: [0, 1, 0], velocitySpread: [3, 0.5, 3],
     gravity: -1, lifetimeMin: 0.5, lifetimeMax: 1.0,
-    sizeMin: 0.04, sizeMax: 0.1, sizeScale: 1,
+    sizeMin: 0.06, sizeMax: 0.15, sizeScale: 1,
     opacity: 0.9, alphaCap: 0.4, loop: false, spread: [0, 0, 0],
   },
   aura: {

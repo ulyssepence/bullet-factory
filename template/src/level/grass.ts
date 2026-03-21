@@ -235,11 +235,11 @@ export function build(opts: GrassBuildOptions): GrassResult {
       }
     }
     const uniforms: Record<string, { value: any }> = {
-      ...extras,
       uTime: { value: 0 },
       uBaseColor: { value: baseColor },
       uTipColor: { value: tipColor },
       uColorVariation: { value: 0.5 },
+      ...extras,
       uBladeHeight: { value: cfg.bladeHeight },
       uBladeHeightVar: { value: cfg.bladeHeightVar },
       uBladeWidth: { value: cfg.bladeWidth },

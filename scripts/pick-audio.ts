@@ -61,7 +61,7 @@ const html = `<!DOCTYPE html>
 </head>
 <body>
   <div id="root"></div>
-  <script src="/app.js"></script>
+  <script type="module" src="/app.js"></script>
 </body>
 </html>`
 fs.writeFileSync(path.join(distDir, 'index.html'), html)

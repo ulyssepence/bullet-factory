@@ -114,6 +114,7 @@ The preview tool reads the game's `src/spec.ts` and `mesh-manifest.json` to disp
    - "Is the hat zone (red) covering only the hat?"
    - "Does the torso zone (blue) bleed into the arms?"
 4. **Palette check** — verify zone colors are drawn from the game palette (visible as swatches in the preview header bar). If a zone's `color` doesn't match a palette hex, fix it.
+   - **Player contrast rule:** Player character zone colors must visually contrast with `palette.ground` and `palette.wall`. Never reuse ground/wall hex values as player zone colors — the player will be invisible against the terrain. Use accent colors or brighter/saturated variants instead.
 5. **Gestalt check** — after per-zone correctness, verify each zone covers a substantial, visually distinct region (~10%+ of visible surface from the front view). If any zone is a thin sliver or visually merges with an adjacent zone, it's not a usable material boundary — adjust thresholds. Ask: "Would a fresh pair of eyes call this 5 distinct zones?"
 6. Adjust thresholds in the JSON. Common fixes:
    - Zone too large → narrow the height/radial range

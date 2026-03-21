@@ -23,6 +23,31 @@ function generateMany(count: number, startSeed: number, enemyCount: number): pal
   return results
 }
 
+function previewWithHeader(p: palette.Palette, index: number): string[] {
+  return [`  [${index}]`, ...palette.preview(p).split('\n'), '']
+}
+
+function gridPrint(blocks: string[][]): void {
+  const cols = process.stdout.columns || 80
+  // strip ANSI to measure visible width
+  const strip = (s: string) => s.replace(/\x1b\[[0-9;]*m/g, '')
+  const blockWidth = Math.max(...blocks.flatMap(b => b.map(l => strip(l).length))) + 2
+  const perRow = Math.max(1, Math.floor(cols / blockWidth))
+  const maxLines = Math.max(...blocks.map(b => b.length))
+
+  for (let i = 0; i < blocks.length; i += perRow) {
+    const row = blocks.slice(i, i + perRow)
+    for (let line = 0; line < maxLines; line++) {
+      const parts = row.map(b => {
+        const raw = b[line] ?? ''
+        const pad = blockWidth - strip(raw).length
+        return raw + ' '.repeat(Math.max(0, pad))
+      })
+      console.log(parts.join(''))
+    }
+  }
+}
+
 if (!isSlug) {
   const enemyCount = parseInt(arg || '3')
   const target = 8
@@ -30,12 +55,8 @@ if (!isSlug) {
   console.log(`\nGenerating ${target} high-contrast palettes (${enemyCount} enemies each):\n`)
 
   const results = generateMany(target, 0.5, enemyCount)
-
-  for (let i = 0; i < results.length; i++) {
-    console.log(`  [${i + 1}]`)
-    console.log(palette.preview(results[i]))
-    console.log()
-  }
+  const blocks = results.map((p, i) => previewWithHeader(p, i + 1))
+  gridPrint(blocks)
 
   console.log(`Pick a number (1-${results.length}):`)
 } else {

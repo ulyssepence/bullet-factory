@@ -420,7 +420,7 @@ Every step must include at least one **juice** item — a small code-only feel t
   - [ ] Budget caps tested: 50+ simultaneous kills don't cause audio distortion or particle blowout
   - [ ] Verified via playwright
 
-- [ ] **2.2 Level generation** — Use `assembleArenaV2()` from `template/src/level/generate.ts` (CA-based). Configure zones from Map section with tactical identities and enemy pools. Read `patterns/level-generation.md`. Apply organic terrain tier based on terrain archetype from Concept.
+- [ ] **2.2 Level generation** — Use `assembleArenaV2()` from `template/src/level/generate.ts` (CA-based). Configure zones from Map section with tactical identities and enemy pools. Read `patterns/level-generation.md`. Apply organic terrain tier based on terrain archetype from Concept. Use graybox wall system (contour ribbon + fill cap) for walls — read `patterns/graybox-walls.md`. Do not use instanced GLB meshes for walls.
   - [ ] Arena generated via `assembleArenaV2()` with zone configs from spec (tacticalIdentity, enemyPool, height)
   - [ ] Arena graph validation (`scripts/validate-arena.ts`) — all checks pass
   - [ ] Walls render with correct palette color + graybox material style
@@ -449,9 +449,10 @@ Every step must include at least one **juice** item — a small code-only feel t
   - [ ] Juice: (the dressing itself is the juice)
   - [ ] Verified via playwright
 
-- [ ] **2.3 Player** — Player capsule, WASD movement, camera follow, wall collision. Import `systems/collision` for `resolvePlayerCollision` and `wrapPosition`, `systems/grid` for grid utilities. Mount `<FpsOverlay />` (from `template/src/fps-overlay`) in scene root — remove in polish phase.
-  - [ ] Player moves 4 directions, camera follows
+- [ ] **2.3 Player** — Player capsule, WASD movement, camera follow, wall collision. Import `systems/collision` for `resolvePlayerCollision` and `wrapPosition`, `systems/grid` for grid utilities. Mount `<FpsOverlay />` (from `template/src/fps-overlay`) in scene root — remove in polish phase. Player scale must be 1.0. Camera must support scroll-to-zoom (default distance 0.7). Walk animation must use `stop()` not `fadeOut()` for idle — see `patterns/character-animation.md`.
+  - [ ] Player moves 4 directions, camera follows with scroll zoom
   - [ ] Walls block player
+  - [ ] Player zone colors contrast with ground/wall palette (see `patterns/material-zones.md`)
   - [ ] FPS overlay visible in top-right corner
   - [ ] Juice: (invent one)
   - [ ] Verified via playwright
@@ -461,7 +462,7 @@ Every step must include at least one **juice** item — a small code-only feel t
   - [ ] Health bar: mutate `player.health -= 20` → health bar DOM element visible and narrower than full width.
   - [ ] XP gain: mutate `player.xp += 50` → XP bar DOM element visible and wider than 0.
 
-- [ ] **2.4 Enemy spawning & navigation** — Read `patterns/spawn-waves.md` and `patterns/level-generation.md` (enemy navigation). Import `systems/enemies` for wave director + spawn logic, `systems/navigation` for flow field BFS + LOS. Wire `EnemyConfig` from spec values.
+- [ ] **2.4 Enemy spawning & navigation** — Read `patterns/spawn-waves.md` and `patterns/level-generation.md` (enemy navigation). Import `systems/enemies` for wave director + spawn logic, `systems/navigation` for flow field BFS + LOS. Wire `EnemyConfig` from spec values. If enemies have rigged GLBs, render as animated character clone pool with walk animations — not instanced geometry extraction. See `patterns/character-animation.md`.
   - [ ] Enemies spawn in waves at ring perimeter
   - [ ] Enemies navigate around walls toward player
   - [ ] Intensity escalates over time
@@ -500,7 +501,7 @@ Every step must include at least one **juice** item — a small code-only feel t
   - [ ] **Movement upgrades:** Spec must include at least one movement speed upgrade in the upgrade pool.
   - [ ] **I-frame cooldown:** `contactInvuln` in tuning must be 0.3–1.0s. Too low = stun-lock deaths. Too high = invincible.
 
-- [ ] **2.10 Progression** — XP gems → bar → level-up choices. Import `systems/progression` for `xpToNext`, `selectChoices`, `applyChange`. Read `patterns/progression.md` for UI (weapon cap, reroll/banish). Pool XP gems. (Magnet pull wired later in 2.7 Pickups.)
+- [ ] **2.10 Progression** — XP gems → bar → level-up choices. Import `systems/progression` for `xpToNext`, `selectChoices`, `applyChange`. Read `patterns/progression.md` for UI (weapon cap, reroll/banish). Pool XP gems. (Magnet pull wired later in 2.7 Pickups.) Block player movement while level-up modal or shrine UI is active (`levelUpActive || shrineActive` guard on movement input).
   - [ ] XP bar fills
   - [ ] Level-up modal with correct choices
   - [ ] Selection applies upgrade

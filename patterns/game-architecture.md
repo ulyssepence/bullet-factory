@@ -184,6 +184,10 @@ One pool per entity type (enemies, projectiles, XP gems, floating numbers). On "
 
 For the Three.js side: pair each pool entry with an `InstancedMesh` index. On release, move the instance's matrix off-screen (or set scale to 0). On acquire, set its matrix to the spawn position. This avoids creating/destroying Three.js objects entirely.
 
+**Exception — animated entities:** Enemies and bosses with rigged GLBs (walk/run animations) should use animated character clone pools instead of `InstancedMesh`. `InstancedMesh` extracts geometry only, discarding the skeleton and all animations. See `patterns/character-animation.md` for the clone pool pattern.
+
+**`instanceColor` vs `vertexColors`:** Never set `vertexColors: true` on an `InstancedMesh` material unless the geometry has a `color` buffer attribute. `instanceColor` works independently via Three.js's `USE_INSTANCING_COLOR` define and does not require `vertexColors`. Setting `vertexColors: true` on geometry without vertex colors zeros out the diffuse color (the shader multiplies by uninitialized `(0,0,0)` attribute values), making everything black.
+
 ## Shared systems (`template/src/systems/`)
 
 Reusable runtime gameplay systems live in `template/src/systems/`. Games import them directly (not copied). Each system is logic-only — no Three.js, no audio. Games wire side effects via callback parameters.
